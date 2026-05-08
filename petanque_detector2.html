@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petanque Detector</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    #app {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+
+    h1 span {
+      color: #1abc9c;
+    }
+
+    #controls-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1d27;
+      color: #ddd;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn:hover {
+      background: #252836;
+    }
+
+    .btn.active {
+      background: #1abc9c;
+      border-color: #16a085;
+      color: #fff;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #color-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    #color-row label {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .color-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+    }
+
+    .color-btn.sel {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px #1abc9c;
+    }
+
+    #sens-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #sens-row label {
+      font-size: 13px;
+      color: #888;
+    }
+
+    #sens-row input {
+      flex: 1;
+      accent-color: #1abc9c;
+    }
+
+    #sens-row span {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1abc9c;
+      min-width: 20px;
+    }
+
+    #status-bar {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    #status-bar b {
+      color: #1abc9c;
+    }
+
+    #calibrate-hint {
+      font-size: 12px;
+      color: #f39c12;
+      background: #1a1500;
+      border: 1px solid #f39c12;
+      border-radius: 8px;
+      padding: 7px 12px;
+      margin-bottom: 8px;
+      display: none;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #2a2d3a;
+      min-height: 240px;
+    }
+
+    #placeholder {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #444;
+      font-size: 14px;
+      text-align: center;
+      line-height: 2;
+      pointer-events: none;
+    }
+
+    #video {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+    }
+
+    #draw-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    #calibrate-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      display: none;
+      z-index: 5;
+    }
+
+    #score-panel {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .score-card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .score-card .lbl {
+      font-size: 11px;
+      color: #555;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .score-card .val {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .score-card.hi .val {
+      color: #1abc9c;
+    }
+
+    #history {
+      margin-top: 14px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .hist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid #1e2130;
+      font-size: 13px;
+    }
+
+    .hist-zone {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    #debug {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #555;
+      background: #111;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <h1>🎯 <span>Petanque</span> Detector</h1>
+
+    <div id="controls-row">
+      <button class="btn" id="btn-start">📷 เปิดกล้อง</button>
+      <button class="btn" id="btn-calibrate" disabled>🎯 ตั้งจุดศูนย์กลาง</button>
+      <button class="btn" id="btn-reset" style="margin-left:auto">🔄 รีเซต</button>
+    </div>
+
+    <div id="color-row">
+      <label>สีลูก:</label>
+      <div class="color-btn sel" data-color="red" style="background:#e74c3c" title="แดง"></div>
+      <div class="color-btn" data-color="yellow" style="background:#f1c40f" title="เหลือง"></div>
+      <div class="color-btn" data-color="blue" style="background:#2980b9" title="น้ำเงิน"></div>
+      <div class="color-btn" data-color="green" style="background:#27ae60" title="เขียว"></div>
+      <div class="color-btn" data-color="orange" style="background:#e67e22" title="ส้ม"></div>
+    </div>
+
+    <div id="sens-row">
+      <label>ความไว:</label>
+      <input type="range" id="sens-slider" min="1" max="5" step="1" value="3">
+      <span id="sens-val">3</span>
+    </div>
+
+    <div id="calibrate-hint">📍 คลิกบนภาพตรงที่ <b>jack (ลูกเป้า)</b> วางอยู่</div>
+    <div id="status-bar">สถานะ: <b id="status-text">รอเปิดกล้อง</b></div>
+
+    <div id="canvas-wrap">
+      <div id="placeholder">กดปุ่ม "เปิดกล้อง"<br><small style="color:#333">ต้องเปิดผ่าน localhost เท่านั้น</small>
+      </div>
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="draw-canvas"></canvas>
+      <canvas id="calibrate-canvas"></canvas>
+    </div>
+
+    <div id="score-panel">
+      <div class="score-card hi">
+        <div class="lbl">คะแนนรวม</div>
+        <div class="val" id="sc-total">0</div>
+      </div>
+      <div class="score-card">
+        <div class="lbl">ลูกล่าสุด</div>
+        <div class="val" id="sc-last">—</div>
+      </div>
+      <div class="score-card">
+        <div class="lbl">จำนวนลูก</div>
+        <div class="val" id="sc-count">0</div>
+      </div>
+      <div class="score-card">
+        <div class="lbl">เฉลี่ย</div>
+        <div class="val" id="sc-avg">—</div>
+      </div>
+    </div>
+
+    <div id="history"></div>
+    <div id="debug">debug: รอเปิดกล้อง</div>
+  </div>
+
+  <script>
+    const ZONES = [
+      { pts: 50, color: '#f1c40f', r: 0.08 },
+      { pts: 40, color: '#e67e22', r: 0.16 },
+      { pts: 30, color: '#e74c3c', r: 0.26 },
+      { pts: 20, color: '#27ae60', r: 0.38 },
+      { pts: 10, color: '#2980b9', r: 0.52 },
+    ];
+    const ZONE_COLORS = { 50: '#f1c40f', 40: '#e67e22', 30: '#e74c3c', 20: '#27ae60', 10: '#2980b9' };
+
+    let stream = null, rafId = null;
+    let centerX = 0.5, centerY = 0.45;
+    let calibrating = false, selectedColor = 'red', sensitivity = 3;
+    let score = { total: 0, count: 0, last: null };
+    let stableFrames = 0, lastPos = null, stableScored = false;
+    const STABLE = 90;
+
+    const video = document.getElementById('video');
+    const drawCanvas = document.getElementById('draw-canvas');
+    const calibCanvas = document.getElementById('calibrate-canvas');
+    const dctx = drawCanvas.getContext('2d');
+    const off = document.createElement('canvas');
+    const octx = off.getContext('2d');
+
+    const dbg = m => document.getElementById('debug').textContent = 'debug: ' + m;
+    const setStatus = t => document.getElementById('status-text').textContent = t;
+
+    function initCanvas(w, h) {
+      drawCanvas.width = w; drawCanvas.height = h;
+      calibCanvas.width = w; calibCanvas.height = h;
+      off.width = w; off.height = h;
+    }
+
+    document.getElementById('btn-start').onclick = async () => {
+      if (stream) { stopCamera(); return; }
+      try {
+        setStatus('กำลังขอสิทธิ์กล้อง...');
+        dbg('getUserMedia...');
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        video.srcObject = stream;
+        dbg('srcObject set — รอ video ready');
+
+        let started = false;
+        function startLoop() {
+          if (started) return;
+          started = true;
+          const w = video.videoWidth || 640;
+          const h = video.videoHeight || 480;
+          dbg('start! ' + w + 'x' + h);
+          initCanvas(w, h);
+          document.getElementById('placeholder').style.display = 'none';
+          document.getElementById('btn-calibrate').disabled = false;
+          document.getElementById('btn-start').textContent = '⏹ ปิดกล้อง';
+          setStatus('กล้องพร้อมแล้ว — กด "ตั้งจุดศูนย์กลาง" ก่อนโยน');
+          loop();
+        }
+
+        video.addEventListener('loadedmetadata', startLoop);
+        video.addEventListener('loadeddata', startLoop);
+        video.addEventListener('canplay', startLoop);
+        video.addEventListener('playing', startLoop);
+
+        // fallback poll
+        const poll = setInterval(() => {
+          if (video.readyState >= 2 && video.videoWidth > 0) {
+            clearInterval(poll);
+            startLoop();
+          }
+        }, 200);
+        setTimeout(() => clearInterval(poll), 10000);
+
+        await video.play().catch(e => dbg('play() warn: ' + e.message));
+
+      } catch (e) {
+        dbg('ERROR: ' + e.name + ' — ' + e.message);
+        setStatus('❌ ' + e.message);
+        alert('เปิดกล้องไม่ได้\n' + e.name + ': ' + e.message + '\n\nต้องรันผ่าน localhost หรือ https เท่านั้น');
+      }
+    };
+
+    function stopCamera() {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      video.srcObject = null;
+      drawCanvas.width = 0;
+      document.getElementById('btn-start').textContent = '📷 เปิดกล้อง';
+      document.getElementById('btn-calibrate').disabled = true;
+      document.getElementById('placeholder').style.display = '';
+      setStatus('ปิดกล้องแล้ว'); dbg('stopped');
+    }
+
+    document.getElementById('btn-calibrate').onclick = () => {
+      calibrating = !calibrating;
+      calibCanvas.style.display = calibrating ? 'block' : 'none';
+      document.getElementById('calibrate-hint').style.display = calibrating ? 'block' : 'none';
+      document.getElementById('btn-calibrate').classList.toggle('active', calibrating);
+      setStatus(calibrating ? 'คลิกตรงที่ jack วางอยู่' : 'ตั้งจุดแล้ว — โยนลูกได้เลย!');
+    };
+
+    calibCanvas.onclick = e => {
+      const r = calibCanvas.getBoundingClientRect();
+      centerX = (e.clientX - r.left) / r.width;
+      centerY = (e.clientY - r.top) / r.height;
+      calibrating = false;
+      calibCanvas.style.display = 'none';
+      document.getElementById('calibrate-hint').style.display = 'none';
+      document.getElementById('btn-calibrate').classList.remove('active');
+      stableScored = false; stableFrames = 0; lastPos = null;
+      setStatus('✅ ตั้งจุดแล้ว — โยนลูกได้เลย!');
+    };
+
+    document.querySelectorAll('.color-btn').forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll('.color-btn').forEach(x => x.classList.remove('sel'));
+        b.classList.add('sel'); selectedColor = b.dataset.color;
+        stableFrames = 0; stableScored = false; lastPos = null;
+      };
+    });
+
+    document.getElementById('sens-slider').oninput = function () {
+      sensitivity = +this.value;
+      document.getElementById('sens-val').textContent = sensitivity;
+    };
+
+    document.getElementById('btn-reset').onclick = () => {
+      score = { total: 0, count: 0, last: null }; updateUI();
+      document.getElementById('history').innerHTML = '';
+      stableFrames = 0; stableScored = false; lastPos = null;
+      setStatus('รีเซตแล้ว');
+    };
+
+    function loop() {
+      if (!stream) return;
+      const cw = drawCanvas.width, ch = drawCanvas.height;
+      if (!cw || !ch || video.readyState < 2) { rafId = requestAnimationFrame(loop); return; }
+
+      octx.drawImage(video, 0, 0, cw, ch);
+      dctx.drawImage(video, 0, 0, cw, ch);
+      drawZones(cw, ch);
+
+      const px = octx.getImageData(0, 0, cw, ch).data;
+      const ball = detectBall(px, cw, ch);
+
+      if (ball) {
+        const bc = { red: '#e74c3c', yellow: '#f1c40f', blue: '#3498db', green: '#2ecc71', orange: '#e67e22' }[selectedColor] || '#fff';
+        dctx.beginPath(); dctx.arc(ball.x, ball.y, 18, 0, Math.PI * 2);
+        dctx.strokeStyle = '#fff'; dctx.lineWidth = 3; dctx.stroke();
+        dctx.beginPath(); dctx.arc(ball.x, ball.y, 18, 0, Math.PI * 2);
+        dctx.strokeStyle = bc; dctx.lineWidth = 2; dctx.stroke();
+
+        if (lastPos) {
+          const d = Math.hypot(ball.x - lastPos.x, ball.y - lastPos.y);
+          if (d < 14) {
+            stableFrames++;
+            const pct = Math.min(stableFrames / STABLE, 1);
+            dctx.beginPath();
+            dctx.arc(ball.x, ball.y, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+            dctx.strokeStyle = '#2ecc71'; dctx.lineWidth = 4; dctx.stroke();
+            dctx.fillStyle = '#fff'; dctx.font = 'bold 13px sans-serif'; dctx.textAlign = 'center';
+            dctx.shadowColor = '#000'; dctx.shadowBlur = 4;
+            dctx.fillText(pct >= 1 ? '✓' : Math.ceil((1 - pct) * 3) + 's', ball.x, ball.y + 5);
+            dctx.shadowBlur = 0;
+            if (stableFrames >= STABLE && !stableScored) {
+              stableScored = true;
+              recordScore(getZone(ball.x, ball.y, cw, ch), ball.x, ball.y, cw, ch);
+            }
+          } else { stableFrames = 0; stableScored = false; }
+        }
+        lastPos = { x: ball.x, y: ball.y };
+        dbg(`ball (${ball.x},${ball.y}) cnt=${ball.cnt} stable=${stableFrames}`);
+      } else {
+        stableFrames = Math.max(0, stableFrames - 2); lastPos = null; stableScored = false;
+        dbg('no ball — readyState=' + video.readyState);
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function drawZones(cw, ch) {
+      const cx = centerX * cw, cy = centerY * ch;
+      const baseR = Math.min(cw, ch) * 0.52;
+      for (let i = ZONES.length - 1; i >= 0; i--) {
+        const z = ZONES[i], r = baseR * (z.r / 0.52);
+        dctx.beginPath(); dctx.arc(cx, cy, r, 0, Math.PI * 2);
+        dctx.fillStyle = z.color; dctx.globalAlpha = 0.07; dctx.fill(); dctx.globalAlpha = 1;
+        dctx.beginPath(); dctx.arc(cx, cy, r, 0, Math.PI * 2);
+        dctx.strokeStyle = z.color; dctx.lineWidth = 2.5; dctx.stroke();
+        dctx.fillStyle = z.color;
+        dctx.font = `bold ${Math.max(13, Math.round(r * 0.16))}px sans-serif`;
+        dctx.textAlign = 'center'; dctx.shadowColor = '#000'; dctx.shadowBlur = 4;
+        dctx.fillText(z.pts, cx, cy + r - 10); dctx.shadowBlur = 0;
+      }
+      dctx.beginPath(); dctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      dctx.fillStyle = '#e74c3c'; dctx.fill();
+      dctx.strokeStyle = '#fff'; dctx.lineWidth = 2; dctx.stroke();
+    }
+
+    function detectBall(data, cw, ch) {
+      let sx = 0, sy = 0, cnt = 0;
+      for (let y = 0; y < ch; y += 3) for (let x = 0; x < cw; x += 3) {
+        const i = (y * cw + x) * 4;
+        if (matchColor(data[i], data[i + 1], data[i + 2])) { sx += x; sy += y; cnt++; }
+      }
+      if (cnt < Math.max(6, 22 - sensitivity * 3)) return null;
+      return { x: Math.round(sx / cnt), y: Math.round(sy / cnt), cnt };
+    }
+
+    function matchColor(r, g, b) {
+      const s = sensitivity * 12;
+      switch (selectedColor) {
+        case 'red': return (r > 140 + s && g < 80 && b < 80) || (r > 130 + s && r > g * 2.2 && r > b * 2.2);
+        case 'yellow': return r > 160 && g > 140 && b < 70 && r > b * 2.5 && g > b * 2;
+        case 'blue': return b > 130 + s && r < 90 && b > r * 1.8 && b > g * 1.3;
+        case 'green': return g > 120 + s && r < 90 && b < 90 && g > r * 1.8 && g > b * 1.5;
+        case 'orange': return r > 180 && g > 80 && g < 150 && b < 60 && r > g * 1.5;
+      }
+      return false;
+    }
+
+    function getZone(bx, by, cw, ch) {
+      const dx = bx / cw - centerX, dy = by / ch - centerY;
+      const d = Math.hypot(dx, dy);
+      for (const z of ZONES) if (d <= z.r) return z.pts;
+      return 0;
+    }
+
+    function recordScore(pts, bx, by, cw, ch) {
+      score.total += pts; score.count++; score.last = pts;
+      updateUI(); addHistory(pts); flash(pts, bx, by, cw, ch);
+      setStatus('🎉 ' + pts + ' คะแนน!');
+      setTimeout(() => { stableScored = false; stableFrames = 0; setStatus('รอลูกถัดไป...'); }, 2500);
+    }
+
+    function flash(pts, bx, by, cw, ch) {
+      const color = ZONE_COLORS[pts] || '#fff';
+      let op = 1.3, oy = 0;
+      const draw = () => {
+        op -= 0.035; oy += 1.5; if (op <= 0) return;
+        dctx.save(); dctx.globalAlpha = Math.min(op, 1);
+        dctx.fillStyle = color; dctx.font = `bold ${Math.round(cw * 0.07)}px sans-serif`;
+        dctx.textAlign = 'center'; dctx.shadowColor = '#000'; dctx.shadowBlur = 8;
+        dctx.fillText('+' + pts, bx, by - 20 - oy); dctx.restore();
+        requestAnimationFrame(draw);
+      };
+      draw();
+    }
+
+    function updateUI() {
+      document.getElementById('sc-total').textContent = score.total;
+      document.getElementById('sc-last').textContent = score.last ?? '—';
+      document.getElementById('sc-count').textContent = score.count;
+      document.getElementById('sc-avg').textContent = score.count > 0 ? Math.round(score.total / score.count) : '—';
+    }
+
+    function addHistory(pts) {
+      const c = ZONE_COLORS[pts] || '#888';
+      const el = document.createElement('div'); el.className = 'hist-item';
+      el.innerHTML = `<div class="hist-zone" style="background:${c}">${pts}</div>
+    <span style="color:#555;font-size:11px">${new Date().toLocaleTimeString()}</span>
+    <span style="margin-left:auto;font-weight:600;color:${c}">${pts} คะแนน</span>`;
+      document.getElementById('history').prepend(el);
+    }
+  </script>
+</body>
+
+</html>

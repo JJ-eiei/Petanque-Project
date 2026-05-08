@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petanque Detector (5s Delay + Homography)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh
+    }
+
+    #app {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 14px
+    }
+
+    h1 {
+      font-size: 19px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 12px
+    }
+
+    h1 span {
+      color: #1abc9c
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 8px
+    }
+
+    .btn {
+      padding: 7px 15px;
+      font-size: 13px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1d27;
+      color: #ddd;
+      cursor: pointer;
+      transition: background .15s
+    }
+
+    .btn:hover {
+      background: #252836
+    }
+
+    .btn.active {
+      background: #1abc9c;
+      border-color: #16a085;
+      color: #fff
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    .color-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer
+    }
+
+    .color-btn.sel {
+      border-color: #fff;
+      box-shadow: 0 0 0 2px #1abc9c
+    }
+
+    #status-bar {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 8px;
+      padding: 7px 13px;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 8px
+    }
+
+    #status-bar b {
+      color: #1abc9c
+    }
+
+    #hint {
+      font-size: 12px;
+      color: #f39c12;
+      background: #1a1500;
+      border: 1px solid #f39c12;
+      border-radius: 8px;
+      padding: 7px 12px;
+      margin-bottom: 8px;
+      display: none
+    }
+
+    /* canvas wrap */
+    #wrap {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #2a2d3a;
+      min-height: 220px
+    }
+
+    #ph {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #444;
+      font-size: 14px;
+      text-align: center;
+      line-height: 2;
+      pointer-events: none
+    }
+
+    #video {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 68vh
+    }
+
+    #oc {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none
+    }
+
+    #cc {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      display: none;
+      z-index: 5
+    }
+
+    #score-panel {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 12px
+    }
+
+    .sc {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 10px;
+      padding: 11px 8px;
+      text-align: center
+    }
+
+    .sc .lb {
+      font-size: 11px;
+      color: #555;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .sc .vl {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff
+    }
+
+    .sc.hi .vl {
+      color: #1abc9c
+    }
+
+    #history {
+      margin-top: 12px;
+      max-height: 140px;
+      overflow-y: auto
+    }
+
+    .hi {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid #1e2130;
+      font-size: 13px
+    }
+
+    .hz {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0
+    }
+
+    #dbg {
+      margin-top: 7px;
+      font-size: 11px;
+      color: #444;
+      background: #111;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-family: monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <h1>🎯 <span>Petanque</span> Detector</h1>
+
+    <div class="row">
+      <button class="btn" id="btn-start">📷 เปิดกล้อง</button>
+      <button class="btn" id="btn-cal" disabled>📐 ตั้งค่ามุมกล้อง (4 จุด)</button>
+      <button class="btn" id="btn-reset" style="margin-left:auto">🔄 รีเซต</button>
+    </div>
+
+    <div class="row">
+      <label style="font-size:13px;color:#888">สีลูก:</label>
+      <div class="color-btn sel" data-c="red" style="background:#e74c3c" title="แดง"></div>
+      <div class="color-btn" data-c="yellow" style="background:#f1c40f" title="เหลือง"></div>
+      <div class="color-btn" data-c="blue" style="background:#2980b9" title="น้ำเงิน"></div>
+      <div class="color-btn" data-c="green" style="background:#27ae60" title="เขียว"></div>
+      <div class="color-btn" data-c="orange" style="background:#e67e22" title="ส้ม"></div>
+      <label style="font-size:13px;color:#888;margin-left:10px">ความไว:</label>
+      <input type="range" id="sens" min="1" max="5" value="3" style="width:80px;accent-color:#1abc9c">
+      <span id="sens-v" style="font-size:13px;font-weight:600;color:#1abc9c">3</span>
+    </div>
+
+    <div id="hint">📍 ทริกเกอร์มุมกรอบสี่เหลี่ยมจัตุรัสบนพื้น 4 จุด เรียงตามนี้:<br><b>บนซ้าย -> บนขวา -> ล่างขวา ->
+        ล่างซ้าย</b></div>
+    <div id="status-bar">สถานะ: <b id="st">รอเปิดกล้อง</b></div>
+
+    <div id="wrap">
+      <div id="ph">กดปุ่ม "เปิดกล้อง"<br><small style="color:#333">ต้องรันผ่าน localhost เท่านั้น</small></div>
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="oc"></canvas>
+      <canvas id="cc"></canvas>
+    </div>
+
+    <div id="score-panel">
+      <div class="sc hi">
+        <div class="lb">คะแนนรวม</div>
+        <div class="vl" id="s-tot">0</div>
+      </div>
+      <div class="sc">
+        <div class="lb">ลูกล่าสุด</div>
+        <div class="vl" id="s-last">—</div>
+      </div>
+      <div class="sc">
+        <div class="lb">จำนวนลูก</div>
+        <div class="vl" id="s-cnt">0</div>
+      </div>
+      <div class="sc">
+        <div class="lb">เฉลี่ย</div>
+        <div class="vl" id="s-avg">—</div>
+      </div>
+    </div>
+
+    <div id="history"></div>
+    <div id="dbg">debug: รอ</div>
+  </div>
+
+  <script>
+    // Zone definitions — color matches reference image
+    const ZONES = [
+      { pts: 50, stroke: '#f4e04d', fill: 'rgba(244,224,77,0.08)', r: 0.08 },
+      { pts: 40, stroke: '#f4a31d', fill: 'rgba(244,163,29,0.08)', r: 0.16 },
+      { pts: 30, stroke: '#e74c3c', fill: 'rgba(231,76,60,0.08)', r: 0.26 },
+      { pts: 20, stroke: '#a8e63d', fill: 'rgba(168,230,61,0.08)', r: 0.38 },
+      { pts: 10, stroke: '#27c93f', fill: 'rgba(39,201,63,0.08)', r: 0.52 },
+    ];
+    const ZC = { 50: '#f4e04d', 40: '#f4a31d', 30: '#e74c3c', 20: '#a8e63d', 10: '#27c93f' };
+
+    let stream = null, rafId = null;
+    let calibrating = false, selColor = 'red', sensitivity = 3;
+    let score = { tot: 0, cnt: 0, last: null };
+
+    // --- เปลี่ยนมาใช้จับเวลาจริง ---
+    let stableStart = 0, lastPos = null, scored = false;
+    const WAIT_MS = 5000; // รอ 5 วินาที
+
+    // --- Homography Setup ---
+    let calibPoints = [];
+    let toFlat = null;   // หน้าจอ -> มุมท็อป (ไว้คิดคะแนน)
+    let toScreen = null; // มุมท็อป -> หน้าจอ (ไว้วาดกราฟิกทับวิดีโอ)
+
+    const flatPoints = [
+      { x: 0, y: 0 },       // 1. บนซ้าย
+      { x: 1000, y: 0 },    // 2. บนขวา
+      { x: 1000, y: 1000 }, // 3. ล่างขวา
+      { x: 0, y: 1000 }     // 4. ล่างซ้าย
+    ];
+
+    function createHomography(src, dst) {
+      var a = [];
+      for (var i = 0; i < 4; i++) {
+        a.push([src[i].x, src[i].y, 1, 0, 0, 0, -src[i].x * dst[i].x, -src[i].y * dst[i].x]);
+        a.push([0, 0, 0, src[i].x, src[i].y, 1, -src[i].x * dst[i].y, -src[i].y * dst[i].y]);
+      }
+      var b = [dst[0].x, dst[0].y, dst[1].x, dst[1].y, dst[2].x, dst[2].y, dst[3].x, dst[3].y];
+      var h = solve(a, b);
+      return function (x, y) {
+        var z = h[6] * x + h[7] * y + 1;
+        return { x: (h[0] * x + h[1] * y + h[2]) / z, y: (h[3] * x + h[4] * y + h[5]) / z };
+      };
+    }
+
+    function solve(A, b) {
+      var n = A.length;
+      for (var i = 0; i < n; i++) A[i].push(b[i]);
+      for (var i = 0; i < n; i++) {
+        var maxEl = Math.abs(A[i][i]), maxRow = i;
+        for (var k = i + 1; k < n; k++) if (Math.abs(A[k][i]) > maxEl) { maxEl = Math.abs(A[k][i]); maxRow = k; }
+        var tmp = A[maxRow]; A[maxRow] = A[i]; A[i] = tmp;
+        for (var k = i + 1; k < n; k++) {
+          var c = -A[k][i] / A[i][i];
+          for (var j = i; j < n + 1; j++) if (i == j) A[k][j] = 0; else A[k][j] += c * A[i][j];
+        }
+      }
+      var x = new Array(n);
+      for (var i = n - 1; i > -1; i--) {
+        x[i] = A[i][n] / A[i][i];
+        for (var k = i - 1; k > -1; k--) A[k][n] -= A[k][i] * x[i];
+      }
+      return x;
+    }
+
+    const video = document.getElementById('video');
+    const oc = document.getElementById('oc');
+    const cc = document.getElementById('cc');
+    const ctx = oc.getContext('2d');
+    const off = document.createElement('canvas');
+    const offx = off.getContext('2d');
+
+    const dbg = m => document.getElementById('dbg').textContent = 'debug: ' + m;
+    const setSt = t => document.getElementById('st').textContent = t;
+
+    document.getElementById('sens').oninput = function () { sensitivity = +this.value; document.getElementById('sens-v').textContent = this.value };
+    document.querySelectorAll('.color-btn').forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll('.color-btn').forEach(x => x.classList.remove('sel'));
+        b.classList.add('sel');
+        selColor = b.dataset.c;
+        stableStart = 0; scored = false; lastPos = null;
+      };
+    });
+
+    // ===== Camera =====
+    document.getElementById('btn-start').onclick = async () => {
+      if (stream) { stopCam(); return }
+      try {
+        setSt('ขอสิทธิ์กล้อง...'); dbg('getUserMedia...');
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+        video.srcObject = stream;
+        let started = false;
+        function go() {
+          if (started) return; started = true;
+          const w = video.videoWidth || 640, h = video.videoHeight || 480;
+          dbg('ready ' + w + 'x' + h);
+          oc.width = w; oc.height = h; cc.width = w; cc.height = h; off.width = w; off.height = h;
+          document.getElementById('ph').style.display = 'none';
+          document.getElementById('btn-cal').disabled = false;
+          document.getElementById('btn-start').textContent = '⏹ ปิดกล้อง';
+          setSt('กล้องพร้อม — กด "ตั้งค่ามุมกล้อง (4 จุด)" ก่อนโยน');
+          loop();
+        }
+        ['loadedmetadata', 'loadeddata', 'canplay', 'playing'].forEach(e => video.addEventListener(e, go));
+        const poll = setInterval(() => { if (video.readyState >= 2 && video.videoWidth > 0) { clearInterval(poll); go() } }, 200);
+        setTimeout(() => clearInterval(poll), 10000);
+        await video.play().catch(e => dbg('play warn:' + e.message));
+      } catch (e) { dbg('ERR:' + e.name + ' ' + e.message); setSt('❌ ' + e.message); alert('เปิดกล้องไม่ได้\n' + e.name + ': ' + e.message) }
+    };
+
+    function stopCam() {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null }
+      video.srcObject = null; oc.width = 0;
+      document.getElementById('btn-start').textContent = '📷 เปิดกล้อง';
+      document.getElementById('btn-cal').disabled = true;
+      document.getElementById('ph').style.display = '';
+      setSt('ปิดกล้อง'); dbg('stopped');
+    }
+
+    document.getElementById('btn-cal').onclick = () => {
+      calibrating = !calibrating;
+      if (calibrating) calibPoints = []; // เคลียร์พิกัดเดิม
+
+      cc.style.display = calibrating ? 'block' : 'none';
+      document.getElementById('hint').style.display = calibrating ? 'block' : 'none';
+      document.getElementById('btn-cal').classList.toggle('active', calibrating);
+
+      if (calibrating) {
+        document.getElementById('hint').innerHTML = `📍 ทริกเกอร์มุมกรอบสี่เหลี่ยมจัตุรัสบนพื้น 4 จุด เรียงตามนี้:<br><b>บนซ้าย -> บนขวา -> ล่างขวา -> ล่างซ้าย</b>`;
+        setSt('รอการคลิก 4 มุม...');
+      } else {
+        setSt('ยกเลิกการตั้งค่า');
+      }
+    };
+
+    cc.onclick = e => {
+      const r = cc.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width * cc.width;
+      const py = (e.clientY - r.top) / r.height * cc.height;
+
+      calibPoints.push({ x: px, y: py });
+
+      if (calibPoints.length < 4) {
+        document.getElementById('hint').innerHTML = `📍 คลิกจุดต่อไป (ได้แล้ว ${calibPoints.length}/4 จุด)`;
+      } else {
+        toFlat = createHomography(calibPoints, flatPoints);
+        toScreen = createHomography(flatPoints, calibPoints);
+
+        calibrating = false;
+        cc.style.display = 'none';
+        document.getElementById('hint').style.display = 'none';
+        document.getElementById('btn-cal').classList.remove('active');
+        stableStart = 0; scored = false; lastPos = null;
+        setSt('✅ คำนวณ Perspective สำเร็จ — โยนลูกได้เลย!');
+      }
+    };
+
+    document.getElementById('btn-reset').onclick = () => {
+      score = { tot: 0, cnt: 0, last: null }; updateUI();
+      document.getElementById('history').innerHTML = '';
+      stableStart = 0; scored = false; lastPos = null; setSt('รีเซตแล้ว');
+    };
+
+    // ===== Draw =====
+    function drawZones(cw, ch) {
+      if (calibPoints.length < 4 || !toScreen) {
+        ctx.fillStyle = '#1abc9c';
+        calibPoints.forEach((p, idx) => {
+          ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif';
+          ctx.fillText(idx + 1, p.x - 4, p.y - 10);
+          ctx.fillStyle = '#1abc9c';
+        });
+        if (calibPoints.length > 1) {
+          ctx.beginPath(); ctx.moveTo(calibPoints[0].x, calibPoints[0].y);
+          for (let i = 1; i < calibPoints.length; i++) ctx.lineTo(calibPoints[i].x, calibPoints[i].y);
+          ctx.strokeStyle = '#1abc9c'; ctx.lineWidth = 2; ctx.stroke();
+        }
+        return;
+      }
+
+      for (let i = ZONES.length - 1; i >= 0; i--) {
+        const z = ZONES[i];
+        const radiusFlat = 500 * (z.r / 0.52);
+
+        ctx.beginPath();
+        for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+          const fx = 500 + radiusFlat * Math.cos(a);
+          const fy = 500 + radiusFlat * Math.sin(a);
+          const sp = toScreen(fx, fy);
+          if (a === 0) ctx.moveTo(sp.x, sp.y);
+          else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = z.fill; ctx.fill();
+        ctx.strokeStyle = z.stroke; ctx.lineWidth = 3; ctx.stroke();
+      }
+
+      const centerScreen = toScreen(500, 500);
+      ctx.beginPath(); ctx.arc(centerScreen.x, centerScreen.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#e74c3c'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // ===== Main loop =====
+    function loop() {
+      if (!stream) return;
+      const cw = oc.width, ch = oc.height;
+      if (!cw || !ch || video.readyState < 2) { rafId = requestAnimationFrame(loop); return }
+
+      offx.drawImage(video, 0, 0, cw, ch);
+      ctx.drawImage(video, 0, 0, cw, ch);
+      drawZones(cw, ch);
+
+      const px = offx.getImageData(0, 0, cw, ch).data;
+      const ball = detect(px, cw, ch);
+
+      if (ball) {
+        const bc = { red: '#e74c3c', yellow: '#f1c40f', blue: '#3498db', green: '#2ecc71', orange: '#e67e22' }[selColor] || '#fff';
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, 18, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, 18, 0, Math.PI * 2);
+        ctx.strokeStyle = bc; ctx.lineWidth = 2; ctx.stroke();
+
+        if (lastPos) {
+          // ถ้าระยะห่างจากตำแหน่งเฟรมที่แล้วน้อยกว่า 15 pixel (ถือว่าลูกหยุดนิ่ง)
+          if (Math.hypot(ball.x - lastPos.x, ball.y - lastPos.y) < 15) {
+            if (stableStart === 0) stableStart = Date.now();
+
+            const elapsed = Date.now() - stableStart;
+            const pct = Math.min(elapsed / WAIT_MS, 1);
+
+            // วาดวงแหวนโหลดเวลาสมูทๆ
+            ctx.beginPath(); ctx.arc(ball.x, ball.y, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+            ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = 4; ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+            ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+
+            const timeLeft = Math.ceil((WAIT_MS - elapsed) / 1000);
+            ctx.fillText(pct >= 1 ? '✓' : timeLeft + 's', ball.x, ball.y + 5);
+            ctx.shadowBlur = 0;
+
+            // ถ้าครบ 5 วิ แล้ว และตั้งจุด 4 มุมแล้ว
+            if (elapsed >= WAIT_MS && !scored && toFlat) {
+              scored = true;
+              recordScore(getZone(ball.x, ball.y, cw, ch), ball.x, ball.y, cw, ch);
+            }
+          } else {
+            // ขยับเยอะ รีเซตเวลาใหม่
+            stableStart = 0; scored = false;
+          }
+        } else {
+          stableStart = Date.now();
+        }
+        lastPos = { x: ball.x, y: ball.y };
+        dbg(`ball(${ball.x},${ball.y}) time=${stableStart > 0 ? Date.now() - stableStart : 0}ms`);
+      } else {
+        stableStart = 0; lastPos = null; scored = false;
+        dbg('no ball readyState=' + video.readyState);
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function detect(data, cw, ch) {
+      let sx = 0, sy = 0, cnt = 0;
+      for (let y = 0; y < ch; y += 3)for (let x = 0; x < cw; x += 3) {
+        const i = (y * cw + x) * 4;
+        if (matchC(data[i], data[i + 1], data[i + 2])) { sx += x; sy += y; cnt++ }
+      }
+      if (cnt < Math.max(6, 22 - sensitivity * 3)) return null;
+      return { x: Math.round(sx / cnt), y: Math.round(sy / cnt), cnt };
+    }
+
+    function matchC(r, g, b) {
+      const s = sensitivity * 12;
+      switch (selColor) {
+        case 'red': return (r > 140 + s && g < 80 && b < 80) || (r > 130 + s && r > g * 2.2 && r > b * 2.2);
+        case 'yellow': return r > 160 && g > 140 && b < 70 && r > b * 2.5 && g > b * 2;
+        case 'blue': return b > 130 + s && r < 90 && b > r * 1.8 && b > g * 1.3;
+        case 'green': return g > 120 + s && r < 90 && b < 90 && g > r * 1.8 && g > b * 1.5;
+        case 'orange': return r > 180 && g > 80 && g < 150 && b < 60 && r > g * 1.5;
+      }return false;
+    }
+
+    function getZone(bx, by, cw, ch) {
+      if (!toFlat) return 0;
+      const flatBall = toFlat(bx, by);
+      const dist = Math.hypot(flatBall.x - 500, flatBall.y - 500);
+
+      for (const z of ZONES) {
+        const radiusFlat = 500 * (z.r / 0.52);
+        if (dist <= radiusFlat) return z.pts;
+      }
+      return 0;
+    }
+
+    function recordScore(pts, bx, by, cw, ch) {
+      score.tot += pts; score.cnt++; score.last = pts;
+      updateUI(); addHist(pts); flashScore(pts, bx, by, cw, ch);
+      setSt('🎉 ' + pts + ' คะแนน!');
+      setTimeout(() => { scored = false; stableStart = 0; setSt('รอลูกถัดไป...') }, 2500);
+    }
+
+    function flashScore(pts, bx, by, cw, ch) {
+      const color = ZC[pts] || '#fff'; let op = 1.3, oy2 = 0;
+      const draw = () => {
+        op -= 0.035; oy2 += 1.5; if (op <= 0) return;
+        ctx.save(); ctx.globalAlpha = Math.min(op, 1);
+        ctx.fillStyle = color; ctx.font = `bold ${Math.round(cw * .07)}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
+        ctx.fillText('+' + pts, bx, by - 20 - oy2); ctx.restore();
+        requestAnimationFrame(draw);
+      }; draw();
+    }
+
+    function updateUI() {
+      document.getElementById('s-tot').textContent = score.tot;
+      document.getElementById('s-last').textContent = score.last ?? '—';
+      document.getElementById('s-cnt').textContent = score.cnt;
+      document.getElementById('s-avg').textContent = score.cnt > 0 ? Math.round(score.tot / score.cnt) : '—';
+    }
+    function addHist(pts) {
+      const c = ZC[pts] || '#888';
+      const el = document.createElement('div'); el.className = 'hi';
+      el.innerHTML = `<div class="hz" style="background:${c}">${pts}</div>
+    <span style="color:#555;font-size:11px">${new Date().toLocaleTimeString()}</span>
+    <span style="margin-left:auto;font-weight:600;color:${c}">${pts} คะแนน</span>`;
+      document.getElementById('history').prepend(el);
+    }
+  </script>
+</body>
+
+</html>
