@@ -307,6 +307,9 @@
     let stable = 0, lastPos = null, scored = false;
     const STABLE = 90;
 
+    // ตำแหน่งลูกที่ล็อคแล้ว — วาดค้างทุก frame
+    let marks = [];
+
     // --- Homography Setup ---
     let calibPoints = [];
     let toFlat = null;   // หน้าจอ -> มุมท็อป (ไว้คิดคะแนน)
@@ -445,7 +448,9 @@
     document.getElementById('btn-reset').onclick = () => {
       score = { tot: 0, cnt: 0, last: null }; updateUI();
       document.getElementById('history').innerHTML = '';
-      stable = 0; scored = false; lastPos = null; setSt('รีเซตแล้ว');
+      stable = 0; scored = false; lastPos = null;
+      marks = [];
+      setSt('รีเซตแล้ว');
     };
 
     // ===== Draw =====
@@ -489,6 +494,27 @@
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
     }
 
+    function drawMarks() {
+      marks.forEach((m, i) => {
+        // วงกลมสีลูก
+        ctx.beginPath(); ctx.arc(m.x, m.y, 18, 0, Math.PI * 2);
+        ctx.fillStyle = m.color + '55'; ctx.fill();
+        ctx.strokeStyle = m.color; ctx.lineWidth = 3; ctx.stroke();
+        // วงขาวด้านนอก
+        ctx.beginPath(); ctx.arc(m.x, m.y, 18, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+        // เลขลำดับลูก
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+        ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+        ctx.fillText(i + 1, m.x, m.y + 5);
+        // คะแนนเหนือลูก
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = m.pts > 0 ? ZC[m.pts] || '#fff' : '#888';
+        ctx.fillText(m.pts > 0 ? '+' + m.pts : '0', m.x, m.y - 24);
+        ctx.shadowBlur = 0;
+      });
+    }
+
     // ===== Main loop =====
     function loop() {
       if (!stream) return;
@@ -498,6 +524,7 @@
       offx.drawImage(video, 0, 0, cw, ch);
       ctx.drawImage(video, 0, 0, cw, ch);
       drawZones(cw, ch);
+      drawMarks();
 
       const px = offx.getImageData(0, 0, cw, ch).data;
       const ball = detect(px, cw, ch);
@@ -569,6 +596,8 @@
 
     function recordScore(pts, bx, by, cw, ch) {
       score.tot += pts; score.cnt++; score.last = pts;
+      const bc = { red: '#e74c3c', yellow: '#f1c40f', blue: '#3498db', green: '#2ecc71', orange: '#e67e22' }[selColor] || '#fff';
+      marks.push({ x: bx, y: by, pts, color: bc });
       updateUI(); addHist(pts); flashScore(pts, bx, by, cw, ch);
       setSt('🎉 ' + pts + ' คะแนน!');
       setTimeout(() => { scored = false; stable = 0; setSt('รอลูกถัดไป...') }, 2500);
