@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Petanque Tracker v15 - Login Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --primary: #3fb950;
+      --primary-dim: rgba(63, 185, 80, .15);
+      --yellow: #d29922;
+      --yellow-dim: rgba(210, 153, 34, .15);
+      --red: #f85149;
+      --red-dim: rgba(248, 81, 73, .15);
+      --blue: #58a6ff;
+      --blue-dim: rgba(88, 166, 255, .15);
+      --text: #c9d1d9;
+      --text-dim: #8b949e;
+      --font: 'Sarabun', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px;
+      gap: 12px
+    }
+
+    /* ── TABS ── */
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      width: 100%;
+      max-width: 1380px
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 9px 0;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: .88rem;
+      color: var(--text-dim);
+      transition: .15s
+    }
+
+    .tab:hover {
+      color: var(--text)
+    }
+
+    .tab.active {
+      background: var(--surface2);
+      color: var(--text)
+    }
+
+    /* ── PAGES ── */
+    .page {
+      display: none;
+      width: 100%;
+      max-width: 1380px;
+      flex-direction: column;
+      gap: 12px
+    }
+
+    .page.active {
+      display: flex
+    }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 18px;
+      font-size: .9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: border-color .3s
+    }
+
+    .status-bar.s0 {
+      border-color: var(--blue)
+    }
+
+    .status-bar.s1 {
+      border-color: var(--yellow)
+    }
+
+    .status-bar.s2 {
+      border-color: var(--primary)
+    }
+
+    .sdot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+      animation: pulse 1.4s infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .25
+      }
+    }
+
+    /* ── LAYOUT ── */
+    .main-layout {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #000;
+      flex-shrink: 0
+    }
+
+    canvas {
+      display: block;
+      cursor: crosshair
+    }
+
+    video {
+      display: none
+    }
+
+    #countdown-ui {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--mono);
+      font-size: 5rem;
+      color: #fff;
+      text-shadow: 0 0 30px var(--primary);
+      display: none;
+      pointer-events: none
+    }
+
+    #calib-hint {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, .7);
+      color: #fff;
+      font-size: .78rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+      pointer-events: none;
+      white-space: nowrap
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 270px;
+      flex: 1
+    }
+
+    .panel-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px
+    }
+
+    .panel-box h3 {
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px
+    }
+
+    #warped-img {
+      border-radius: 6px;
+      width: 100%;
+      object-fit: contain;
+      border: 1px dashed var(--primary);
+      display: none
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px
+    }
+
+    .mc {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 10px 12px
+    }
+
+    .mc .lbl {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 3px
+    }
+
+    .mc .val {
+      font-family: var(--mono);
+      font-size: 1.45rem;
+      line-height: 1;
+      color: var(--primary)
+    }
+
+    .mc .val .u {
+      font-size: .75rem;
+      color: var(--text-dim);
+      margin-left: 2px
+    }
+
+    .mc.red .val {
+      color: var(--red)
+    }
+
+    .mc.yel .val {
+      color: var(--yellow)
+    }
+
+    .ctrl-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    input[type=number] {
+      width: 60px;
+      padding: 6px 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: .88rem;
+      outline: none;
+      text-align: center
+    }
+
+    input[type=text],
+    input[type=password] {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: .88rem;
+      outline: none;
+      margin-bottom: 8px;
+      transition: border-color 0.2s;
+    }
+
+    input[type=text]:focus,
+    input[type=password]:focus {
+      border-color: var(--primary);
+    }
+
+    select {
+      padding: 7px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: .85rem;
+      outline: none;
+      cursor: pointer;
+      flex: 1
+    }
+
+    .btn {
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-weight: 700;
+      font-size: .82rem;
+      padding: 8px 16px;
+      transition: .12s
+    }
+
+    .btn:active {
+      transform: scale(.97)
+    }
+
+    .btn-red {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid var(--red)
+    }
+
+    .btn-grn {
+      background: var(--primary-dim);
+      color: var(--primary);
+      border: 1px solid var(--primary)
+    }
+
+    .btn-blu {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid var(--blue)
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 200px;
+      overflow-y: auto
+    }
+
+    .hi {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border-radius: 6px;
+      padding: 7px 10px;
+      border-left: 3px solid var(--red);
+    }
+
+    .btn-del {
+      background: none;
+      border: none;
+      color: var(--red);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px 8px;
+      opacity: 0.6;
+    }
+
+    .empty {
+      font-size: .8rem;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 12px 0
+    }
+
+    .mode-switch {
+      display: flex;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 10px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 6px;
+      text-align: center;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 6px;
+      color: var(--text-dim);
+    }
+
+    .mode-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('tracker')">🎯 Tracker</div>
+    <div class="tab" onclick="switchTab('calib')">📷 Calibration</div>
+  </div>
+
+  <div class="page active" id="page-tracker">
+
+    <div class="status-bar s0" id="status-bar">
+      <div class="sdot"></div>
+      <span id="status-text">ขั้นตอนที่ 1 — คลิกมาร์กจุดอ้างอิง 4 จุด (TL→TR→BR→BL)</span>
+    </div>
+
+    <div class="main-layout">
+      <div class="canvas-wrap">
+        <video id="videoElement" autoplay playsinline></video>
+        <canvas id="petanqueCanvas" width="640" height="480"></canvas>
+        <div id="countdown-ui">3</div>
+        <div id="calib-hint">คลิกจุดที่ 1/4</div>
+      </div>
+
+      <div class="right-panel">
+
+        <div class="panel-box" id="login-box">
+          <h3>เข้าสู่ระบบผู้เล่น (เพื่อผูกสถิติ)</h3>
+          <div id="login-form">
+            <input type="text" id="login-user" placeholder="ชื่อผู้ใช้งาน (Username)">
+            <input type="password" id="login-pass" placeholder="รหัสผ่าน (Password)">
+            <button class="btn btn-blu" onclick="doLogin()" style="width:100%">เข้าสู่ระบบ</button>
+          </div>
+          <div id="user-info" style="display:none; text-align:center; padding: 5px 0;">
+            <p style="font-size:0.95rem; margin-bottom:12px;">ผู้เล่นปัจจุบัน: <strong id="display-user"
+                style="color:var(--primary)"></strong></p>
+            <button class="btn btn-red" onclick="doLogout()" style="width:100%">ออกจากระบบ</button>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>Bird's Eye View</h3>
+          <img id="warped-img" src="" alt="">
+          <div class="empty" id="warped-empty">มาร์ก 4 จุด</div>
+        </div>
+
+        <div class="panel-box">
+          <h3>ผลการวัด</h3>
+          <div class="metric-grid">
+            <div class="mc">
+              <div class="lbl">ขอบถึงขอบ</div>
+              <div class="val" id="m-edge">—</div>
+            </div>
+            <div class="mc red">
+              <div class="lbl">ศูนย์กลาง</div>
+              <div class="val" id="m-center">—</div>
+            </div>
+            <div class="mc yel">
+              <div class="lbl">รัศมีลูกเปตอง</div>
+              <div class="val" id="m-rrad">—</div>
+            </div>
+            <div class="mc">
+              <div class="lbl">รัศมีลูกแก่น</div>
+              <div class="val" id="m-jrad">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>โหมดสนาม</h3>
+          <div class="mode-switch">
+            <div id="mode-auto" class="mode-btn active" onclick="setCourtMode('auto')">Auto Detect</div>
+            <div id="mode-manual" class="mode-btn" onclick="setCourtMode('manual')">Manual</div>
+          </div>
+          <div id="auto-court-ctrl">
+            <button class="btn btn-blu" onclick="detectCourtAuto()" style="width:100%">🔍 ตรวจจับสนามอัตโนมัติ</button>
+          </div>
+          <div id="manual-court-ctrl" style="display:none">
+            <p style="font-size:.75rem;color:var(--text-dim);text-align:center">คลิกบนภาพ 4 จุด (TL→TR→BR→BL)</p>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>📏 Correction / Ruler</h3>
+          <button id="ruler-btn" class="btn btn-blu" onclick="toggleRuler()" style="width:100%">เปิด Ruler Mode</button>
+          <div id="ruler-result" style="display:none;margin-top:10px">
+            <p style="font-size:0.8rem">วัดได้: <span id="ruler-measured" style="color:var(--blue)">—</span> ซม.</p>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>ตั้งค่า</h3>
+          <div class="ctrl-row" style="margin-bottom:8px">
+            <select id="camera-select" onchange="switchCamera()">
+              <option value="">กำลังค้นหากล้อง...</option>
+            </select>
+          </div>
+          <div class="ctrl-row" style="margin-bottom:8px">
+            <label style="font-size:0.8rem">กว้าง <input type="number" id="ref-width" value="100"> cm</label>
+            <label style="font-size:0.8rem">ยาว <input type="number" id="ref-height" value="100"> cm</label>
+          </div>
+          <div class="ctrl-row">
+            <button class="btn btn-red" onclick="resetAll()">↺ Reset All</button>
+            <button class="btn btn-grn" onclick="undoCalib()">← Undo Point</button>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+            <h3 style="margin-bottom:0">ประวัติการวัด</h3>
+            <button class="btn btn-red" onclick="clearHistory()" style="padding:4px 8px; font-size:0.7rem">ล้าง</button>
+          </div>
+          <div class="history-list" id="history-list">
+            <div class="empty">ยังไม่มีข้อมูล</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-calib">
+    <div
+      style="text-align:center;padding:40px;background:var(--surface);border-radius:10px;border:1px solid var(--border)">
+      <h2 style="margin-bottom:20px">Camera Calibration</h2>
+      <p style="color:var(--text-dim);margin-bottom:20px">โปรดใช้หน้าจอเดิม (v12) ในการทำ Calibration ละเอียด</p>
+      <button class="btn btn-blu" onclick="switchTab('tracker')">กลับหน้าหลัก</button>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://127.0.0.1:5000';
+
+    // ── Global State ──
+    let courtMode = 'auto';
+    let calibPts = [];
+    let jackPoint = null;
+    let historyBalls = [];
+    let overlayBalls = [];
+    let currentBall = null;
+    let step = 0;
+    let targetFoundTime = 0; // 🚀 FIX: เปลี่ยนจาก stationaryTime เป็นการจับเวลาจากนาฬิกาจริง
+    let lastPos = { x: 0, y: 0 };
+    let lastTimestamp = 0;
+    let measuring = false;
+    let isRendering = false;
+    let currentStream = null;
+
+    // Stability Constants
+    const STABLE_PX = 10;
+    const JITTER_THRESHOLD = 25;
+    const STABLE_MS = 3000;
+    const OVERLAY_LIFE = 6;
+
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('petanqueCanvas');
+    const ctx = canvas.getContext('2d');
+    const cleanCanvas = document.createElement('canvas');
+    cleanCanvas.width = 640; cleanCanvas.height = 480;
+    const cleanCtx = cleanCanvas.getContext('2d');
+
+    const statusBar = document.getElementById('status-bar');
+    const statusText = document.getElementById('status-text');
+    const cntUI = document.getElementById('countdown-ui');
+    const calibHint = document.getElementById('calib-hint');
+    const warpedImg = document.getElementById('warped-img');
+    const warpedEmpty = document.getElementById('warped-empty');
+
+    // ── ระบบ Session & Login ──
+    let loggedInUser = sessionStorage.getItem('username');
+    let currentSessionId = sessionStorage.getItem('session_id');
+
+    function updateLoginUI() {
+      if (loggedInUser) {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('user-info').style.display = 'block';
+        document.getElementById('display-user').textContent = loggedInUser;
+      } else {
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('user-info').style.display = 'none';
+        document.getElementById('display-user').textContent = '';
+      }
+    }
+    updateLoginUI(); // รันตั้งแต่หน้าเว็บโหลด
+
+    async function doLogin() {
+      const u = document.getElementById('login-user').value.trim();
+      const p = document.getElementById('login-pass').value.trim();
+      if (!u || !p) { alert('กรุณากรอก Username และ Password ให้ครบถ้วนครับ'); return; }
+
+      try {
+        const res = await fetch(`${API}/api/login`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          loggedInUser = data.username;
+          currentSessionId = data.session_id;
+          sessionStorage.setItem('username', loggedInUser);
+          sessionStorage.setItem('session_id', currentSessionId);
+          updateLoginUI();
+          resetStats(); // รีเซ็ตสถิติเมื่อ login
+          alert(`ยินดีต้อนรับคุณ ${loggedInUser} เข้าสู่ระบบช้อม!`);
+        } else {
+          alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + data.message);
+        }
+      } catch (e) {
+        alert('❌ ไม่สามารถเชื่อมต่อกับ Backend Server ได้');
+      }
+    }
+
+    async function doLogout() {
+      if (currentSessionId) {
+        try {
+          await fetch(`${API}/api/logout`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentSessionId })
+          });
+        } catch (e) { console.error("Logout API error:", e); }
+      }
+      sessionStorage.clear();
+      loggedInUser = null;
+      currentSessionId = null;
+      updateLoginUI();
+      resetStats(); // รีเซ็ตสถิติเมื่อ logout
+      alert('ออกจากระบบเรียบร้อยแล้ว');
+    }
+
+
+    // ── UI Control ──
+    function setCourtMode(m) {
+      courtMode = m;
+      document.getElementById('mode-auto').classList.toggle('active', m === 'auto');
+      document.getElementById('mode-manual').classList.toggle('active', m === 'manual');
+      document.getElementById('auto-court-ctrl').style.display = m === 'auto' ? 'block' : 'none';
+      document.getElementById('manual-court-ctrl').style.display = m === 'manual' ? 'block' : 'none';
+      resetAll();
+    }
+
+    async function detectCourtAuto() {
+      setStatus(0, '🔍 กำลังค้นหาสนามอัตโนมัติ...');
+      const img = cleanCanvas.toDataURL('image/jpeg', 0.8);
+      try {
+        const res = await fetch(`${API}/api/detect_court`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: img })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          calibPts = d.points; step = 1;
+          calibHint.textContent = 'คลิกศูนย์กลางลูกแก่น แล้ว drag กำหนดขนาด';
+          setStatus(1, '2. คลิก+drag วาดวงกลมรอบลูกแก่น');
+        } else { setStatus(0, '❌ ไม่พบสนาม ลองใช้ Manual mode'); }
+      } catch (e) { setStatus(0, '❌ เชื่อมต่อ Server ไม่ได้'); }
+    }
+
+    // ── Camera ──
+    async function getCameras() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+        const sel = document.getElementById('camera-select');
+        sel.innerHTML = '';
+        devs.forEach((d, i) => {
+          const o = document.createElement('option'); o.value = d.deviceId; o.text = d.label || `Camera ${i + 1}`; sel.appendChild(o);
+        });
+        if (devs.length) startCamera(devs[0].deviceId);
+      } catch (e) { }
+    }
+
+    async function startCamera(id) {
+      if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: id ? { exact: id } : undefined } });
+        video.srcObject = currentStream;
+        if (!isRendering) { isRendering = true; requestAnimationFrame(renderLoop); }
+      } catch (e) { }
+    }
+    function switchCamera() { startCamera(document.getElementById('camera-select').value); resetAll(); }
+    getCameras();
+
+    // ── Render ──
+    function renderLoop(ts) {
+      const dt = ts - lastTimestamp; lastTimestamp = ts;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        cleanCtx.drawImage(video, 0, 0, 640, 480);
+        ctx.drawImage(cleanCanvas, 0, 0);
+      }
+      drawOverlays();
+      if (step === 2) autoDetect();
+      requestAnimationFrame(renderLoop);
+    }
+
+
+    function drawOverlays() {
+      // (โค้ดวาดสนามและลูกแก่นเหมือนเดิม)
+      if (calibPts.length >= 2) {
+        ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+        ctx.beginPath(); calibPts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        if (calibPts.length === 4) ctx.closePath();
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      calibPts.forEach((p, i) => {
+        ctx.fillStyle = '#58a6ff'; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px JetBrains Mono';
+        ctx.fillText(['TL', 'TR', 'BR', 'BL'][i] || '', p.x + 8, p.y - 5);
+      });
+
+      if (jackPoint) {
+        ctx.strokeStyle = '#d29922'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(jackPoint.x, jackPoint.y, jackPoint.radius || 10, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#d29922'; ctx.beginPath(); ctx.arc(jackPoint.x, jackPoint.y, 3, 0, Math.PI * 2); ctx.fill();
+      }
+
+      overlayBalls.forEach((b) => {
+        if (b.life <= 0) return;
+        ctx.strokeStyle = '#f85149'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.radius || 14, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = `rgba(248,81,73,${0.03 * b.life})`; ctx.fill();
+        if (b.dist) {
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 11px JetBrains Mono';
+          ctx.fillText(`${b.dist}cm`, b.x - 15, b.y - (b.radius || 14) - 5);
+        }
+      });
+
+      // 🚀 FIX: วงกลมจับเวลา ใช้เวลาจริง (Date.now) คำนวณความคืบหน้า
+      if (currentBall && targetFoundTime > 0) {
+        const elapsed = Date.now() - targetFoundTime;
+        const prog = Math.min(elapsed / STABLE_MS, 1);
+        ctx.strokeStyle = `rgba(63,185,80,${0.3 + prog * 0.7})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(currentBall.x, currentBall.y, (currentBall.radius || 14) + 6, 0, Math.PI * 2); ctx.stroke();
+
+        ctx.strokeStyle = '#3fb950'; ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(currentBall.x, currentBall.y, (currentBall.radius || 14) + 12, -Math.PI / 2, -Math.PI / 2 + (prog * Math.PI * 2));
+        ctx.stroke();
+      }
+
+      // Ruler Overlay
+      if (corrMode && corrLine) {
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(corrLine.x1, corrLine.y1); ctx.lineTo(corrLine.x2, corrLine.y2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // ── Detection ──
+    let _detectPending = false;
+
+    async function autoDetect() {
+      // 🚀 FIX: ถ้ากำลังยิง API ขอคะแนนอยู่ ห้ามทำงานซ้อนเด็ดขาด (ป้องกัน Race Condition)
+      if (measuring) return;
+
+      // 🚀 FIX: ลด Throttling ลงให้ลื่นขึ้น
+      if (_detectPending || Date.now() - (window._ld || 0) < 400) return;
+
+      _detectPending = true;
+      window._ld = Date.now();
+      const img = cleanCanvas.toDataURL('image/jpeg', .5);
+
+      try {
+        const res = await fetch(`${API}/api/detect_red_ball`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: img }) });
+        const d = await res.json();
+
+        if (d.status === 'success' && d.balls) {
+          overlayBalls.forEach(ob => ob.life--);
+          d.balls.forEach(nb => {
+            // 🚀 FIX: เช็คระยะลูกเดิมโดยใช้รัศมีลูกเปตองเป็นเกณฑ์
+            let match = overlayBalls.find(ob => Math.hypot(ob.x - nb.x, ob.y - nb.y) < (nb.radius || 14) * 1.5);
+            if (match) {
+              match.x = nb.x; match.y = nb.y; match.radius = nb.radius; match.life = OVERLAY_LIFE;
+            } else {
+              let hist = historyBalls.find(hb => Math.hypot(hb.x - nb.x, hb.y - nb.y) < (hb.radius || 14) * 1.5);
+              overlayBalls.push({ x: nb.x, y: nb.y, radius: nb.radius, dist: hist ? hist.dist : null, life: OVERLAY_LIFE });
+            }
+          });
+          overlayBalls = overlayBalls.filter(ob => ob.life > 0);
+
+          // ── 🚀 FIX: ป้องกันลูกจูบกัน (Piggyback) ใช้รัศมีของ history ball คำนวณ ──
+          const unrecorded = d.balls.filter(b =>
+            !historyBalls.some(hb => Math.hypot(b.x - hb.x, b.y - hb.y) < (hb.radius || 14) * 1.2)
+          );
+
+          let newTarget = null;
+          if (unrecorded.length > 0) {
+            if (currentBall) {
+              const closest = unrecorded.reduce((best, b) => {
+                const dBest = Math.hypot(best.x - currentBall.x, best.y - currentBall.y);
+                const dB = Math.hypot(b.x - currentBall.x, b.y - currentBall.y);
+                return dB < dBest ? b : best;
+              });
+              const distToClosest = Math.hypot(closest.x - currentBall.x, closest.y - currentBall.y);
+
+              // 🚀 FIX: ล็อกเป้าหมายเดิมให้แน่นขึ้น ป้องกันขโมยเป้า
+              const allowedDist = Math.max((currentBall.radius || 14) * 1.5, 20);
+
+              if (distToClosest <= allowedDist) {
+                newTarget = closest;
+              } else {
+                targetFoundTime = 0; // ทิ้งเป้าหมายเดิม รอเฟรมหน้า
+                currentBall = null;
+                newTarget = null;
+              }
+            } else {
+              newTarget = jackPoint
+                ? unrecorded.reduce((best, b) => {
+                  const dBest = Math.hypot(best.x - jackPoint.x, best.y - jackPoint.y);
+                  const dB = Math.hypot(b.x - jackPoint.x, b.y - jackPoint.y);
+                  return dB < dBest ? b : best;
+                })
+                : unrecorded[0];
+            }
+          }
+
+          if (newTarget) {
+            const mv = Math.hypot(newTarget.x - lastPos.x, newTarget.y - lastPos.y);
+            if (mv > JITTER_THRESHOLD) {
+              targetFoundTime = 0; // เคลื่อนที่เร็ว รีเซ็ตนาฬิกา
+            } else if (mv > STABLE_PX) {
+              // ขยับนิดหน่อย → reset นาฬิกา ยังไม่นับว่านิ่ง
+              targetFoundTime = 0;
+            } else {
+              // ลูกนิ่งแล้ว เริ่มจับเวลาจริง
+              if (targetFoundTime === 0) targetFoundTime = Date.now();
+            }
+            currentBall = { x: newTarget.x, y: newTarget.y, radius: newTarget.radius };
+            lastPos = { x: newTarget.x, y: newTarget.y };
+          } else if (currentBall === null) {
+            targetFoundTime = 0;
+          }
+        } else {
+          overlayBalls.forEach(ob => ob.life--);
+          overlayBalls = overlayBalls.filter(ob => ob.life > 0);
+          targetFoundTime = 0; currentBall = null;
+        }
+      } catch (e) { }
+      finally { _detectPending = false; }
+
+      // ── 🚀 FIX: ใช้เวลาจริงในการวัด ไม่ผูกกับ API Delay อีกต่อไป ──
+      if (targetFoundTime > 0 && !measuring) {
+        const elapsed = Date.now() - targetFoundTime;
+        const rem = Math.ceil((STABLE_MS - elapsed) / 1000);
+
+        if (rem > 0) {
+          cntUI.style.display = 'block'; cntUI.textContent = rem;
+          setStatus(2, `🚨 เจอเป้าหมาย! กำลังวัดใน ${rem}...`);
+        } else {
+          // หมดเวลา 3 วินาทีแล้ว สั่งวัดทันที!
+          cntUI.style.display = 'none';
+          measuring = true; // ล็อกสถานะ
+          await triggerMeasure();
+          // วัดเสร็จ คลายล็อก แล้วหาลูกต่อไป
+          targetFoundTime = 0;
+          currentBall = null;
+          measuring = false;
+        }
+      } else { cntUI.style.display = 'none'; }
+    }
+
+    async function triggerMeasure() {
+      if (!currentBall || !jackPoint || calibPts.length < 4) return;
+      const rw = parseFloat(document.getElementById('ref-width').value) || 100;
+      const rh = parseFloat(document.getElementById('ref-height').value) || 100;
+      try {
+        const res = await fetch(`${API}/api/calculate_distance`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: loggedInUser || 'guest',
+            session_id: currentSessionId || null,
+            calibration_points: calibPts, jack: { x: jackPoint.x, y: jackPoint.y },
+            red_ball: { x: currentBall.x, y: currentBall.y }, jack_radius_px: jackPoint.radius || 0,
+            red_ball_radius_px: currentBall.radius || 0, ref_width_cm: rw, ref_height_cm: rh
+          })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          const b = { ...currentBall, dist: d.distance_cm, center_dist: d.center_distance_cm, red_r: d.red_radius_cm, jack_r: d.jack_radius_cm };
+          historyBalls.push(b);
+          // 🚀 FIX: ลบลูกที่วัดแล้วออก โดยใช้ระยะรัศมีจริง ไม่ใช่ 50px ฟิกซ์ตายตัว
+          overlayBalls = overlayBalls.filter(o => Math.hypot(o.x - b.x, o.y - b.y) >= (b.radius || 14) * 1.5);
+          updateMetrics(b); updateHistory();
+          setStatus(2, `✅ วัดสำเร็จ! ได้แต้ม: ${d.points} | ${b.dist} ซม.`);
+        }
+      } catch (e) { }
+    }
+
+    // ── Interaction ──
+    let jackDragStart = null;
+    let corrMode = false, corrDrag = false, corrLine = null;
+
+    canvas.addEventListener('mousedown', e => {
+      if (corrMode) { const p = canvasXY(e); corrLine = { x1: p.x, y1: p.y, x2: p.x, y2: p.y }; corrDrag = true; return; }
+      if (step === 1) jackDragStart = canvasXY(e);
+    });
+    canvas.addEventListener('mousemove', e => {
+      if (corrMode && corrDrag) { const p = canvasXY(e); corrLine.x2 = p.x; corrLine.y2 = p.y; return; }
+      if (step === 1 && jackDragStart) {
+        const { x, y } = canvasXY(e);
+        jackPoint = { x: jackDragStart.x, y: jackDragStart.y, radius: Math.max(Math.hypot(x - jackDragStart.x, y - jackDragStart.y), 6) };
+      }
+    });
+    canvas.addEventListener('mouseup', async e => {
+      if (corrMode && corrDrag) {
+        corrDrag = false; if (Math.hypot(corrLine.x2 - corrLine.x1, corrLine.y2 - corrLine.y1) > 5) await fetchLineDistance();
+        return;
+      }
+      if (step === 1 && jackPoint) { jackDragStart = null; step = 2; setStatus(2, '3. รอตรวจจับลูกบอล...'); calibHint.style.display = 'none'; }
+    });
+    canvas.addEventListener('click', e => {
+      if (step === 0 && courtMode === 'manual') {
+        calibPts.push(canvasXY(e));
+        if (calibPts.length < 4) { calibHint.textContent = `คลิกจุดที่ ${calibPts.length + 1}/4`; }
+        else { step = 1; calibHint.textContent = 'วาดวงกลมลูกแก่น'; setStatus(1, '2. วาดวงกลมรอบลูกแก่น'); }
+      }
+    });
+
+    function toggleRuler() {
+      if (calibPts.length < 4) { alert('ต้องมาร์กสนามก่อน'); return; }
+      corrMode = !corrMode; document.getElementById('ruler-btn').textContent = corrMode ? '🔴 ปิด Ruler' : 'เปิด Ruler Mode';
+      if (!corrMode) { corrLine = null; document.getElementById('ruler-result').style.display = 'none'; }
+    }
+
+    async function fetchLineDistance() {
+      const rw = parseFloat(document.getElementById('ref-width').value) || 100;
+      const rh = parseFloat(document.getElementById('ref-height').value) || 100;
+      try {
+        const res = await fetch(`${API}/api/measure_line`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ calibration_points: calibPts, p1: { x: corrLine.x1, y: corrLine.y1 }, p2: { x: corrLine.x2, y: corrLine.y2 }, ref_width_cm: rw, ref_height_cm: rh })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          document.getElementById('ruler-measured').textContent = d.distance_cm;
+          document.getElementById('ruler-result').style.display = 'block';
+        }
+      } catch (e) { }
+    }
+
+    function canvasXY(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+
+    function resetStats() {
+      // รีเซ็ต UI ผลการวัด
+      document.getElementById('m-edge').textContent = '—';
+      document.getElementById('m-center').textContent = '—';
+      document.getElementById('m-rrad').textContent = '—';
+      document.getElementById('m-jrad').textContent = '—';
+      // รีเซ็ตประวัติการวัดและ tracking state ทั้งหมด
+      historyBalls = [];
+      overlayBalls = [];
+      currentBall = null;
+      targetFoundTime = 0;
+      lastPos = { x: 0, y: 0 };
+      updateHistory();
+    }
+
+    function resetAll() {
+      calibPts = []; jackPoint = null; currentBall = null; historyBalls = []; overlayBalls = [];
+      step = 0; targetFoundTime = 0; measuring = false;
+      calibHint.style.display = '';
+      calibHint.textContent = courtMode === 'manual' ? 'คลิกจุดที่ 1/4' : 'กดปุ่มตรวจจับสนาม';
+      setStatus(0, 'ขั้นตอนที่ 1 — มาร์กสนาม'); updateHistory();
+      // รีเซ็ต UI ผลการวัดด้วย
+      document.getElementById('m-edge').textContent = '—';
+      document.getElementById('m-center').textContent = '—';
+      document.getElementById('m-rrad').textContent = '—';
+      document.getElementById('m-jrad').textContent = '—';
+    }
+
+    function setStatus(s, msg) { statusBar.className = `status-bar s${s}`; statusText.textContent = msg; }
+
+    function updateMetrics(b) {
+      document.getElementById('m-edge').textContent = `${b.dist} ซม.`;
+      document.getElementById('m-center').textContent = `${b.center_dist} ซม.`;
+      document.getElementById('m-rrad').textContent = `${b.red_r} ซม.`;
+      document.getElementById('m-jrad').textContent = `${b.jack_r} ซม.`;
+    }
+
+    function updateHistory() {
+      const list = document.getElementById('history-list');
+      if (!historyBalls.length) { list.innerHTML = '<div class="empty">ยังไม่มีข้อมูล</div>'; return; }
+      list.innerHTML = historyBalls.map((b, i) => `
+        <div class="hi">
+          <div style="display:flex; flex-direction:column"><span class="hl">ลูกที่ ${i + 1}</span><span class="hv">${b.dist} ซม.</span></div>
+          <button class="btn-del" onclick="removeHistory(${i})">✕</button>
+        </div>`).join('');
+    }
+
+    function removeHistory(i) { historyBalls.splice(i, 1); updateHistory(); }
+    function clearHistory() { historyBalls = []; updateHistory(); }
+    function undoCalib() { if (step === 0 && calibPts.length > 0) calibPts.pop(); }
+
+    function switchTab(t) {
+      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', ['tracker', 'calib'][i] === t));
+      document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+      document.getElementById(`page-${t}`).classList.add('active');
+    }
+
+    // Bird's Eye interval
+    let _warpPending = false;
+    setInterval(async () => {
+      if (step < 1 || _warpPending) return;
+      _warpPending = true;
+      const rw = parseFloat(document.getElementById('ref-width').value) || 100;
+      const rh = parseFloat(document.getElementById('ref-height').value) || 100;
+      try {
+        const res = await fetch(`${API}/api/warp_image`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: cleanCanvas.toDataURL('image/jpeg', .6), calibration_points: calibPts, ref_width_cm: rw, ref_height_cm: rh })
+        });
+        const d = await res.json();
+        if (d.status === 'success') { warpedImg.src = d.image; warpedImg.style.display = 'block'; warpedEmpty.style.display = 'none'; }
+      } catch (e) { }
+      finally { _warpPending = false; }
+    }, 1500);
+
+  </script>
+</body>
+
+</html>

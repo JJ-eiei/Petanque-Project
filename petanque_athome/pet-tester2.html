@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Petanque AI Tester (Live & Batch)</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1e1e1e;
+      color: #fff;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      text-align: center;
+      color: #3fb950;
+    }
+
+    /* ระบบ Tab */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      background: #2d2d2d;
+      color: #aaa;
+      border: 2px solid #333;
+      padding: 10px 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #3fb950;
+      color: white;
+      border-color: #3fb950;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* โหมด Upload */
+    .upload-box {
+      background: #2d2d2d;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      border: 2px dashed #3fb950;
+      margin-bottom: 20px;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: #333;
+      border-radius: 8px;
+      overflow: hidden;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .card img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+
+    .card p {
+      font-size: 0.8rem;
+      margin: 8px 0 0 0;
+      color: #aaa;
+      word-break: break-all;
+    }
+
+    /* โหมด Live */
+    .live-box {
+      background: #2d2d2d;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .video-container {
+      position: relative;
+      display: inline-block;
+      margin: 20px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #333;
+    }
+
+    /* วิดีโอซ่อนไว้ ใช้วาดลง Canvas แทน */
+    video {
+      display: none;
+    }
+
+    canvas {
+      display: block;
+      background: #000;
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* ปุ่มทั่วไป และ Dropdown กล้อง */
+    .camera-select {
+      padding: 10px;
+      border-radius: 5px;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+      font-size: 1rem;
+      margin-right: 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    button.action-btn {
+      background: #3fb950;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      vertical-align: top;
+    }
+
+    button.action-btn:hover {
+      background: #2ea043;
+    }
+
+    button.stop-btn {
+      background: #f85149;
+    }
+
+    button.stop-btn:hover {
+      background: #da3633;
+    }
+
+    #loading {
+      display: none;
+      margin-top: 10px;
+      color: #58a6ff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>🧪 เครื่องมือทดสอบความแม่นยำ AI</h2>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('live')">📷 ทดสอบกล้องสด (Live)</button>
+      <button class="tab-btn" onclick="switchTab('batch')">📁 ทดสอบรูปภาพ (Batch Upload)</button>
+    </div>
+
+    <div id="tab-live" class="tab-content active">
+      <div class="live-box">
+        <p style="color: #aaa; margin-bottom: 20px;">ทดสอบส่องกล้องดูผลลัพธ์การตีเส้นของ AI แบบเรียลไทม์ (จำกัดความเร็ว
+          4-5 FPS เพื่อไม่ให้คอมค้าง)</p>
+
+        <div style="margin-bottom: 10px;">
+          <select id="camera-select" class="camera-select" onchange="switchCamera()" style="display: none;"></select>
+
+          <button id="btn-start" class="action-btn" onclick="startLive()">▶️ เปิดกล้อง</button>
+          <button id="btn-stop" class="action-btn stop-btn" onclick="stopLive()" style="display:none;">⏹️
+            ปิดกล้อง</button>
+        </div>
+
+        <div class="video-container">
+          <video id="live-video" autoplay playsinline></video>
+          <canvas id="live-canvas" width="640" height="480"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-batch" class="tab-content">
+      <div class="upload-box">
+        <p>เลือกไฟล์รูปภาพหลายๆ รูป:</p>
+        <input type="file" id="file-input" multiple accept="image/*">
+        <br><br>
+        <p>หรือเลือกทั้งโฟลเดอร์ (อัปโหลดรูปทั้งหมดในโฟลเดอร์):</p>
+        <input type="file" id="folder-input" webkitdirectory directory multiple>
+        <br><br>
+        <button class="action-btn" onclick="uploadFiles()">🚀 เริ่มตรวจสอบรูปภาพ</button>
+        <div id="loading">กำลังประมวลผล... <span id="progress-text">0/0</span></div>
+      </div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = 'http://127.0.0.1:5000'; // แก้เป็น IP ของคุณหากใช้งานผ่านมือถือ
+
+    // ── ระบบจัดการ Tabs ──
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      if (tabId !== 'live') stopLive();
+    }
+
+    // ── ระบบค้นหากล้อง (Camera Enumeration) ──
+    async function getCameras() {
+      try {
+        // ขออนุญาต 1 ครั้ง เพื่อให้ Browser ยอมส่งรายชื่อกล้องที่แท้จริงมาให้
+        await navigator.mediaDevices.getUserMedia({ video: true });
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+        const select = document.getElementById('camera-select');
+        select.innerHTML = ''; // ล้างค่าเดิม
+
+        videoDevices.forEach((device, index) => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.text = device.label || `Camera ${index + 1}`;
+          select.appendChild(option);
+        });
+
+        // ถ้าเจอกล้องให้แสดง Dropdown
+        if (videoDevices.length > 0) {
+          select.style.display = 'inline-block';
+        }
+      } catch (err) {
+        console.warn("ไม่สามารถดึงข้อมูลรายชื่อกล้องได้:", err);
+      }
+    }
+
+    // เรียกตอนโหลดหน้าเว็บ
+    getCameras();
+
+    // ── ระบบทดสอบกล้องสด (Live Camera) ──
+    let liveStream = null;
+    let isDetecting = false;
+    const video = document.getElementById('live-video');
+    const canvas = document.getElementById('live-canvas');
+    const ctx = canvas.getContext('2d');
+
+    async function startLive(deviceId = null) {
+      // ถ้ามีกล้องเดิมเปิดอยู่ ให้ปิดก่อน
+      if (liveStream) {
+        liveStream.getTracks().forEach(track => track.stop());
+      }
+
+      // ตั้งค่ากล้อง
+      let videoConstraints = { width: { ideal: 640 }, height: { ideal: 480 } };
+
+      const select = document.getElementById('camera-select');
+      if (deviceId) {
+        // ถ้าสั่งให้สลับกล้องแบบเจาะจง
+        videoConstraints.deviceId = { exact: deviceId };
+      } else if (select && select.value) {
+        // ถ้าเปิดกล้องครั้งแรก ให้ดึงค่าจาก Dropdown ปัจจุบัน
+        videoConstraints.deviceId = { exact: select.value };
+      } else {
+        // fallback กรณี Dropdown ไม่ทำงาน
+        videoConstraints.facingMode = 'environment';
+      }
+
+      try {
+        liveStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
+        video.srcObject = liveStream;
+
+        video.onloadedmetadata = () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+
+          document.getElementById('btn-start').style.display = 'none';
+          document.getElementById('btn-stop').style.display = 'inline-block';
+
+          // ถ้าเพิ่งเปิดกล้องครั้งแรก ให้รัน Loop (ถ้าสลับกล้องเฉยๆ ลูปเดิมยังวิ่งอยู่)
+          if (!isDetecting) {
+            isDetecting = true;
+            detectLoop();
+          }
+        };
+      } catch (err) {
+        alert("ไม่สามารถเปิดกล้องได้: " + err);
+      }
+    }
+
+    // ฟังก์ชันสำหรับ Dropdown สลับกล้อง
+    function switchCamera() {
+      const select = document.getElementById('camera-select');
+      if (isDetecting && select.value) {
+        startLive(select.value); // สลับกล้องทันที
+      }
+    }
+
+    function stopLive() {
+      isDetecting = false;
+      if (liveStream) {
+        liveStream.getTracks().forEach(track => track.stop());
+      }
+      document.getElementById('btn-start').style.display = 'inline-block';
+      document.getElementById('btn-stop').style.display = 'none';
+
+      // ล้างหน้าจอ
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    async function detectLoop() {
+      if (!isDetecting) return;
+
+      // 1. วาดภาพจากวิดีโอลง Canvas ก่อน
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // 2. แปลงภาพเป็น Base64 แบบย่อขนาดให้ส่งผ่านเน็ตไวๆ
+      const base64Img = canvas.toDataURL('image/jpeg', 0.6);
+
+      try {
+        // 3. ส่งภาพไปถาม YOLO หลังบ้าน
+        const response = await fetch(`${API}/api/detect_live`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64Img })
+        });
+        const data = await response.json();
+
+        // 4. วาดภาพสดทับอีกรอบ (เพื่อลบกรอบเก่าของเฟรมที่แล้ว)
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 5. วาดกรอบสี่เหลี่ยม (Bounding Box) ที่ได้กลับมา
+        if (data.status === 'success' && data.boxes) {
+          data.boxes.forEach(b => {
+            const color = b.class.toLowerCase().includes('jack') ? '#d29922' : '#3fb950';
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(b.xmin, b.ymin, b.xmax - b.xmin, b.ymax - b.ymin);
+
+            ctx.fillStyle = color;
+            ctx.font = 'bold 16px Arial';
+            const text = `${b.class} ${(b.conf * 100).toFixed(0)}%`;
+            ctx.fillText(text, b.xmin, b.ymin - 8);
+          });
+        }
+      } catch (e) {
+        // หากเชื่อมต่อผิดพลาด
+      }
+
+      // หน่วงเวลา (ประมาณ 4-5 เฟรมต่อวินาที)
+      setTimeout(detectLoop, 250);
+    }
+
+    // ── ระบบอัปโหลดรูปภาพ (Batch Upload) ──
+    async function uploadFiles() {
+      const fileInput = document.getElementById('file-input');
+      const folderInput = document.getElementById('folder-input');
+      const gallery = document.getElementById('gallery');
+      const loading = document.getElementById('loading');
+      const progressText = document.getElementById('progress-text');
+
+      let files = [...fileInput.files, ...folderInput.files];
+      files = files.filter(f => f.type.startsWith('image/'));
+
+      if (files.length === 0) {
+        alert('กรุณาเลือกไฟล์รูปภาพ หรือโฟลเดอร์ที่มีรูปภาพครับ');
+        return;
+      }
+
+      gallery.innerHTML = '';
+      loading.style.display = 'block';
+
+      let completed = 0;
+
+      for (let file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch(`${API}/api/test_upload`, {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (data.status === 'success') {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                        <img src="${data.image}" alt="result">
+                        <p>${data.filename}</p>
+                    `;
+            gallery.appendChild(card);
+          }
+        } catch (error) {
+          console.error('Error uploading file:', file.name, error);
+        }
+
+        completed++;
+        progressText.textContent = `${completed} / ${files.length}`;
+      }
+
+      loading.style.display = 'none';
+      alert('ตรวจจับเสร็จสิ้น!');
+    }
+  </script>
+
+</body>
+
+</html>

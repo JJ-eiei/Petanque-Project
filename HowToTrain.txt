@@ -1,0 +1,106 @@
+1. วางโค้ดนี้ใน colab 
+
+!nvidia-smi
+!pip install ultralytics
+from google.colab import drive
+drive.mount('/content/drive')
+
+
+
+
+2.กด download code ใน roboflow แล้วเอาโค้ดชุดนี้ไปรันใน colab
+
+!pip install roboflow
+
+from roboflow import Roboflow
+rf = Roboflow(api_key="1d06cNYGLQmh25z7Npnl")
+project = rf.workspace("myproject-u6evn").project("petanque-o05dc")
+version = project.version(5)
+dataset = version.download("yolov8")
+
+
+3. โค้ดเทรน
+
+from ultralytics import YOLO
+import os
+
+# หาที่อยู่ไฟล์ data.yaml ที่โหลดมาจาก Roboflow อัตโนมัติ
+yaml_path = f"{dataset.location}/data.yaml"
+print(f"✅ เจอไฟล์ Dataset ของคุณแล้วที่: {yaml_path}")
+
+# โหลดโมเดลและเริ่มเทรน
+model = YOLO('yolov8s.pt') 
+results = model.train(
+    data=yaml_path,
+    epochs=100,
+    imgsz=800,   # ขยายภาพให้ใหญ่เพื่อหาลูกเปตองในเงา
+    batch=8,     # ปรับ batch ให้พอดีกับแรม
+    project='/content/drive/MyDrive/Petanque_YOLO',
+    name='train_results_v3' # เซฟไว้ใน Drive ป้องกันเน็ตหลุด
+)
+                
+4. test model 
+#!pip install ultralytics
+from ultralytics import YOLO
+import cv2
+from google.colab.patches import cv2_imshow
+
+# 1. ดึงโมเดลที่เราเพิ่งเทรนเสร็จเวอร์ชั่นล่าสุด (v3) จาก Google Drive
+model_path = '/content/drive/MyDrive/Petanque_YOLO/train_results_v3/weights/best.pt'
+model = YOLO(model_path)
+
+# 2. ใส่ชื่อไฟล์รูปภาพที่คุณเพิ่งอัปโหลดตะกี้ลงไป
+# ⚠️ เปลี่ยนชื่อไฟล์ 'test01.jpg' ให้ตรงกับรูปของคุณนะครับ
+image_path = '/content/petanque-5/test/images' 
+
+# 3. สั่งให้ AI ตรวจจับ (Predict)
+# conf=0.40 คือให้แสดงเฉพาะวัตถุที่ AI มั่นใจเกิน 40% ขึ้นไปเท่านั้น
+results = model.predict(source=image_path, conf=0.40, save=True)
+
+print("\n🍏 --- ผลการทดสอบจาก AI --- 🍏")
+
+# 4. วาดกรอบและโชว์ภาพบนหน้าจอ Colab ทันที
+for r in results:
+    im_array = r.plot()  # ดึงภาพที่ AI ตีเส้นและวาดกรอบเสร็จแล้ว
+    cv2_imshow(im_array) # แสดงรูปภาพออกมาบนหน้าจอ
+
+
+--------------------------------------
+
+
+
+from ultralytics import YOLO
+import os
+
+yaml_path = f"{dataset.location}/data.yaml"
+print(f"✅ เจอไฟล์ Dataset ของคุณแล้วที่: {yaml_path}")
+
+# ตรวจขนาด dataset ก่อน
+train_count = len(os.listdir(f"{dataset.location}/train/images"))
+valid_count = len(os.listdir(f"{dataset.location}/valid/images"))
+print(f"📊 Train: {train_count} | Valid: {valid_count}")
+
+model = YOLO('yolo11m.pt')  # ใช้ nano แทน small สำหรับ dataset เล็ก
+
+results = model.train(
+    data=yaml_path,
+    epochs=100,          # ลดลง — ใช้ early stopping แทน
+    patience=20,         # หยุดเองถ้า val loss ไม่ดีขึ้น 20 epochs
+    imgsz=1280,           # ลดลงจาก 1280 → gradient เสถียรขึ้น
+    batch=8,            # เพิ่มได้เพราะภาพเล็กลง
+    optimizer='AdamW',
+    lr0=0.001,
+    lrf=0.01,
+
+    # Augmentation สำหรับปัญหาเงา/แสงน้อย
+    hsv_v=0.5,           # สุ่มความสว่าง (จำลองเงา)
+    hsv_s=0.5,           # สุ่ม saturation
+    degrees=15,          # หมุนเล็กน้อย
+    flipud=0.1,          # พลิกแนวตั้งบางครั้ง
+    mosaic=1.0,          # รวม 4 ภาพ → เพิ่ม context หลากหลาย
+    mixup=0.1,           # blend สองภาพ → ลด overfit
+
+    project='/content/drive/MyDrive/Petanque_YOLO',
+    name='train_v4',
+    save_period=10,      # save checkpoint ทุก 10 epochs ป้องกันเน็ตหลุด
+)

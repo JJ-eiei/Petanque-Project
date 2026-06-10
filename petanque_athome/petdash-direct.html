@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petanque Training Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --primary: #3fb950;
+      --primary-dim: rgba(63, 185, 80, 0.15);
+      --yellow: #d29922;
+      --yellow-dim: rgba(210, 153, 34, 0.15);
+      --red: #f85149;
+      --red-dim: rgba(248, 81, 73, 0.15);
+      --blue: #58a6ff;
+      --blue-dim: rgba(88, 166, 255, 0.15);
+      --text: #c9d1d9;
+      --text-dim: #8b949e;
+      --font: 'Sarabun', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* AUTH CARD DESIGN */
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .auth-card.active {
+      display: block;
+    }
+
+    .auth-card h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .auth-card .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--blue);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2ea043;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      margin-top: 10px;
+    }
+
+    .btn-outline:hover {
+      background: var(--surface2);
+      color: #fff;
+    }
+
+    .switch-mode {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.88rem;
+      color: var(--text-dim);
+    }
+
+    .switch-mode a {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .switch-mode a:hover {
+      text-decoration: underline;
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .role-option {
+      border: 2px solid var(--border);
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .role-option.selected {
+      border-color: var(--blue);
+      background: var(--blue-dim);
+    }
+
+    .role-option h4 {
+      font-size: 1.1rem;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .role-option p {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    .alert {
+      background: var(--red-dim);
+      border: 1px solid var(--red);
+      color: var(--red);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    /* DASHBOARD VIEW STYLING */
+    .dashboard-view {
+      display: none;
+      width: 100%;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    .dashboard-view.active {
+      display: block;
+    }
+
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #fff;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .role-chip {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .role-chip.admin {
+      background: var(--yellow-dim);
+      color: var(--yellow);
+      border: 1px solid var(--yellow);
+    }
+
+    .role-chip.visitor {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid var(--blue);
+    }
+
+    .dash-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 900px) {
+      .dash-layout {
+        grid-template-columns: 3fr 1fr;
+      }
+    }
+
+    .dash-main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .panel-box h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 20px;
+      border-left: 4px solid var(--blue);
+      transition: 0.2s ease;
+    }
+
+    .kpi-card.success {
+      border-left-color: var(--primary);
+    }
+
+    .kpi-card.warning {
+      border-left-color: var(--yellow);
+    }
+
+    .kpi-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-family: var(--mono);
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .kpi-value span {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      margin-left: 4px;
+    }
+
+    .data-table-wrap {
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px 16px;
+      font-size: 0.9rem;
+    }
+
+    .data-table th {
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .acc-badge {
+      font-family: var(--mono);
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .acc-high {
+      color: var(--primary);
+      background: var(--primary-dim);
+    }
+
+    .acc-mid {
+      color: var(--yellow);
+      background: var(--yellow-dim);
+    }
+
+    .acc-low {
+      color: var(--red);
+      background: var(--red-dim);
+    }
+
+    .permission-box {
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .p-admin {
+      background: var(--yellow-dim);
+      border: 1px solid var(--yellow);
+      color: #ffdf7a;
+    }
+
+    .p-visitor {
+      background: var(--blue-dim);
+      border: 1px solid var(--blue);
+      color: #a5d1ff;
+    }
+
+    .daily-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .daily-card {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      border-top: 3px solid var(--primary);
+      text-align: center;
+    }
+
+    .daily-card.accent-blue {
+      border-top-color: var(--blue);
+    }
+
+    .daily-card.accent-yellow {
+      border-top-color: var(--yellow);
+    }
+
+    .daily-card.accent-red {
+      border-top-color: var(--red);
+    }
+
+    .daily-card .d-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .daily-card .d-value {
+      font-family: var(--mono);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .daily-card .d-unit {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-left: 3px;
+    }
+
+    .daily-date {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border-radius: 20px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 20px;
+      background: linear-gradient(90deg, var(--primary), #58a6ff);
+      transition: width 0.6s ease;
+    }
+
+    .best-session-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    .best-session-row span {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-container">
+
+    <div class="auth-card active" id="view-signin">
+      <h2>เข้าสู่ระบบ</h2>
+      <p class="subtitle">ระบบวิเคราะห์และเก็บสถิติการฝึกซ้อมเปตอง</p>
+      <div class="alert" id="signin-alert"></div>
+      <form id="form-signin" onsubmit="handleSignIn(event)">
+        <div class="form-group">
+          <label for="signin-user">ชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="signin-user" class="input-field" placeholder="กรอกชื่อผู้ใช้งาน" required>
+        </div>
+        <div class="form-group">
+          <label for="signin-pass">รหัสผ่าน (Password)</label>
+          <input type="password" id="signin-pass" class="input-field" placeholder="กรอกรหัสผ่าน" required>
+        </div>
+        <button type="submit" class="btn btn-primary">เข้าสู่ระบบ ➔</button>
+      </form>
+      <div class="switch-mode">
+        ยังไม่มีบัญชีผู้ใช้งาน? <a href="#" onclick="switchAuthView('signup')">สมัครสมาชิกที่นี่</a>
+      </div>
+    </div>
+
+    <div class="auth-card" id="view-signup">
+      <h2>สมัครสมาชิก</h2>
+      <p class="subtitle">สร้างบัญชีใหม่เพื่อเข้าใช้งานระบบบันทึกผล</p>
+      <div class="alert" id="signup-alert"></div>
+      <form id="form-signup" onsubmit="handleSignUp(event)">
+        <div class="form-group">
+          <label for="signup-user">ตั้งชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="signup-user" class="input-field" placeholder="ตั้งชื่อผู้ใช้งานเป็นภาษาอังกฤษ"
+            required>
+        </div>
+        <div class="form-group">
+          <label for="signup-pass1">ตั้งรหัสผ่าน (Password)</label>
+          <input type="password" id="signup-pass1" class="input-field" placeholder="กรอกรหัสผ่านรอบที่ 1" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-pass2">ยืนยันรหัสผ่านอีกครั้ง (Confirm Password)</label>
+          <input type="password" id="signup-pass2" class="input-field" placeholder="กรอกรหัสผ่านรอบที่ 2" required>
+        </div>
+        <button type="submit" class="btn btn-primary">ขั้นตอนต่อไป ➔</button>
+      </form>
+      <div class="switch-mode">
+        มีบัญชีผู้ใช้งานอยู่แล้ว? <a href="#" onclick="switchAuthView('signin')">เข้าสู่ระบบ</a>
+      </div>
+    </div>
+
+    <div class="auth-card" id="view-role">
+      <h2>กำหนดสิทธิ์ผู้ใช้งาน</h2>
+      <p class="subtitle">เลือกประเภทบัญชีเพื่อเข้าถึงข้อมูลในระบบ</p>
+      <div class="alert" id="role-alert"></div>
+      <form id="form-role" onsubmit="handleRoleSubmit(event)">
+        <div class="role-grid">
+          <div class="role-option selected" id="opt-visitor" onclick="selectRole('visitor')">
+            <h4>Visitor</h4>
+            <p>นักเรียน / นักกีฬา ดูได้เฉพาะข้อมูลของตัวเอง</p>
+          </div>
+          <div class="role-option" id="opt-admin" onclick="selectRole('admin')">
+            <h4>Admin</h4>
+            <p>ผู้ฝึกสอน / ครู ดูสถิติของนักเรียนทุกคนได้</p>
+          </div>
+        </div>
+        <div class="form-group" id="admin-code-group" style="display: none;">
+          <label for="admin-code" style="color: var(--yellow);">รหัสยืนยันสิทธิ์ผู้ฝึกสอน (Admin Code)</label>
+          <input type="password" id="admin-code" class="input-field" placeholder="กรอกรหัสผ่านลับผู้ฝึกสอน">
+        </div>
+        <button type="submit" class="btn btn-primary">ยืนยันและสร้างบัญชีสำเร็จ 🎉</button>
+        <button type="button" class="btn btn-outline" onclick="switchAuthView('signup')">➔ ย้อนกลับ</button>
+      </form>
+    </div>
+
+    <div class="dashboard-view" id="view-dashboard">
+      <div class="nav-bar">
+        <div class="nav-brand">🎯 Petanque Training Analytics</div>
+        <div class="user-badge">
+          <span style="font-weight: 600; color: #fff;" id="dash-username">Username</span>
+          <span class="role-chip" id="dash-role-chip">Visitor</span>
+          <button class="btn btn-outline" onclick="logout()"
+            style="width: auto; padding: 6px 12px; margin: 0; font-size: 0.85rem;">ออกจากระบบ ✖</button>
+        </div>
+      </div>
+
+      <div class="dash-layout">
+        <div class="dash-main">
+          <div id="permission-msg"></div>
+
+          <div id="admin-filter-container"
+            style="display: none; background: var(--surface2); padding: 16px 20px; border-radius: 10px; border: 1px solid var(--blue); margin-bottom: 4px; align-items: center; justify-content: space-between;">
+            <div>
+              <span style="font-size: 1.2rem; margin-right: 8px;">👨‍🎓</span>
+              <span style="font-weight: 600; color: #fff;">วิเคราะห์พัฒนาการรายบุคคล</span>
+            </div>
+            <select id="admin-student-select" onchange="filterByStudent()"
+              style="padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); color: #fff; border-radius: 8px; font-family: var(--font); font-weight: 600; min-width: 200px; cursor: pointer; outline: none;">
+              <option value="all">👥 นักเรียนทั้งหมดรวมกัน</option>
+            </select>
+          </div>
+
+          <div class="panel-box" id="daily-panel">
+            <h3 id="daily-title">📅 สรุปผลวันนี้</h3>
+            <div class="daily-date" id="daily-date-label"></div>
+            <div class="daily-grid">
+              <div class="daily-card">
+                <div class="d-label">รอบซ้อมวันนี้</div>
+                <div class="d-value" id="d-sessions">0<span class="d-unit">รอบ</span></div>
+              </div>
+              <div class="daily-card accent-yellow">
+                <div class="d-label">ลูกที่โยนวันนี้</div>
+                <div class="d-value" id="d-balls">0<span class="d-unit">ลูก</span></div>
+              </div>
+              <div class="daily-card accent-blue">
+                <div class="d-label">แต้มรวมวันนี้</div>
+                <div class="d-value" id="d-score">0<span class="d-unit">แต้ม</span></div>
+              </div>
+              <div class="daily-card accent-red">
+                <div class="d-label">ความแม่นยำเฉลี่ย</div>
+                <div class="d-value" id="d-acc">0.0<span class="d-unit">%</span></div>
+              </div>
+            </div>
+            <div class="best-session-row">
+              <span style="color:var(--text-dim)">Session ดีที่สุดวันนี้:</span>
+              <span id="d-best">—</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="d-progress-bar" style="width:0%"></div>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-dim);margin-top:4px">
+              <span>0%</span><span>ความแม่นยำเฉลี่ยวันนี้</span><span>100%</span>
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-title">จำนวนรอบการซ้อมทั้งหมด</div>
+              <div class="kpi-value" id="kpi-sessions">0 <span>รอบ</span></div>
+            </div>
+            <div class="kpi-card success">
+              <div class="kpi-title">ความแม่นยำเฉลี่ยรวม</div>
+              <div class="kpi-value" id="kpi-accuracy">0.0 <span>%</span></div>
+            </div>
+            <div class="kpi-card warning">
+              <div class="kpi-title">จำนวนลูกที่โยนทั้งหมด</div>
+              <div class="kpi-value" id="kpi-balls">0 <span>ลูก</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <h3 id="table-title">📊 รายการบันทึกสถิติ</h3>
+            <div class="data-table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr id="table-header"></tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box" style="align-self: start;">
+          <h3 style="color: var(--blue);">💡 สรุปการเชื่อมต่อ</h3>
+          <p style="font-size: 0.88rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px;">
+            หน้าจอแดชบอร์ดนี้เชื่อมต่อโดยตรงกับ <strong>Supabase</strong>
+            โดยไม่ผ่าน Flask — สามารถเปิดได้จากทุกที่โดยไม่ต้องรันเซิร์ฟเวอร์
+          </p>
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 12px 0;">
+          <small style="color: var(--text-dim); display: block;">สถานะ: Direct Supabase Connection ✅</small>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Supabase config (คุยตรง ไม่ผ่าน Flask) ──
+    const SB_URL = "https://gxevbufcksazoqvhvfji.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4ZXZidWZja3Nhem9xdmh2ZmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MjE2NjIsImV4cCI6MjA5NTA5NzY2Mn0.4GOpkp79uP_NSwtzqDFECWKIVeLWW921jfXMMX3MwUo";
+    const SB_HDR = { "Content-Type": "application/json", "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` };
+
+    // ── Supabase REST helpers ──
+    async function sbGet(table, params = "") {
+      const res = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, { headers: { ...SB_HDR, "Prefer": "return=representation" } });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+    async function sbPost(table, body) {
+      const res = await fetch(`${SB_URL}/rest/v1/${table}`, {
+        method: "POST", headers: { ...SB_HDR, "Prefer": "return=representation" }, body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    let tempUserData = { username: "", password: "", role: "visitor" };
+    let currentUser = null;
+    let _allSessionData = []; // เก็บ Data ดิบที่ดึงมาครั้งแรกทั้งหมด
+    let _sessionData = [];    // เก็บ Data ที่ผ่านการฟิลเตอร์แล้วเพื่อใช้ตอนกดดูรายลูก
+
+    (async function autoLogin() {
+      const saved = localStorage.getItem('currentUser');
+      if (saved) {
+        try {
+          currentUser = JSON.parse(saved);
+          await loadDashboardView();
+        } catch (e) {
+          localStorage.removeItem('currentUser');
+        }
+      }
+    })();
+
+    function switchAuthView(viewName) {
+      document.getElementById('view-signin').classList.remove('active');
+      document.getElementById('view-signup').classList.remove('active');
+      document.getElementById('view-role').classList.remove('active');
+      document.getElementById('view-dashboard').classList.remove('active');
+
+      document.getElementById('signin-alert').style.display = 'none';
+      document.getElementById('signup-alert').style.display = 'none';
+      document.getElementById('role-alert').style.display = 'none';
+
+      if (viewName === 'signin') document.getElementById('view-signin').classList.add('active');
+      if (viewName === 'signup') document.getElementById('view-signup').classList.add('active');
+      if (viewName === 'role') document.getElementById('view-role').classList.add('active');
+      if (viewName === 'dashboard') document.getElementById('view-dashboard').classList.add('active');
+    }
+
+    async function handleSignIn(event) {
+      event.preventDefault();
+      const user = document.getElementById('signin-user').value.trim();
+      const pass = document.getElementById('signin-pass').value;
+      const alertBox = document.getElementById('signin-alert');
+
+      try {
+        const data = await sbGet("users", `username=eq.${encodeURIComponent(user)}&password=eq.${encodeURIComponent(pass)}&select=username,role`);
+        if (data && data.length > 0) {
+          currentUser = { username: data[0].username, role: data[0].role };
+          alertBox.style.display = "none";
+          loadDashboardView();
+        } else {
+          alertBox.textContent = "❌ ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
+          alertBox.style.display = "block";
+        }
+      } catch (e) {
+        alertBox.textContent = "❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้";
+        alertBox.style.display = "block";
+      }
+    }
+
+    function handleSignUp(event) {
+      event.preventDefault();
+      const user = document.getElementById('signup-user').value.trim();
+      const pass1 = document.getElementById('signup-pass1').value;
+      const pass2 = document.getElementById('signup-pass2').value;
+      const alertBox = document.getElementById('signup-alert');
+
+      if (pass1 !== pass2) {
+        alertBox.textContent = "❌ รหัสผ่านทั้ง 2 ครั้งไม่ตรงกัน";
+        alertBox.style.display = "block";
+        return;
+      }
+      tempUserData.username = user;
+      tempUserData.password = pass1;
+      alertBox.style.display = "none";
+      switchAuthView('role');
+    }
+
+    function selectRole(roleType) {
+      tempUserData.role = roleType;
+      document.getElementById('opt-visitor').classList.toggle('selected', roleType === 'visitor');
+      document.getElementById('opt-admin').classList.toggle('selected', roleType === 'admin');
+
+      const codeGroup = document.getElementById('admin-code-group');
+      if (roleType === 'admin') {
+        codeGroup.style.display = 'block';
+        document.getElementById('admin-code').focus();
+      } else {
+        codeGroup.style.display = 'none';
+      }
+    }
+
+    async function handleRoleSubmit(event) {
+      event.preventDefault();
+      const alertBox = document.getElementById('role-alert');
+
+      if (tempUserData.role === 'admin') {
+        const codeInput = document.getElementById('admin-code').value;
+        if (codeInput !== 'marialai_2554') {
+          alertBox.textContent = "❌ รหัสยืนยันสิทธิ์ผู้ฝึกสอนไม่ถูกต้อง";
+          alertBox.style.display = "block";
+          return;
+        }
+      }
+
+      try {
+        // เช็คชื่อซ้ำ
+        const existing = await sbGet("users", `username=eq.${encodeURIComponent(tempUserData.username)}&select=username`);
+        if (existing && existing.length > 0) {
+          alertBox.textContent = "❌ ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว";
+          alertBox.style.display = "block";
+          return;
+        }
+        // สร้าง user ใหม่
+        await sbPost("users", { username: tempUserData.username, password: tempUserData.password, role: tempUserData.role });
+        currentUser = { username: tempUserData.username, role: tempUserData.role };
+        alertBox.style.display = "none";
+        loadDashboardView();
+      } catch (e) {
+        alertBox.textContent = "❌ เกิดข้อผิดพลาดเชื่อมต่อกับฐานข้อมูล";
+        alertBox.style.display = "block";
+      }
+    }
+
+    async function loadDashboardView() {
+      document.getElementById('form-signin').reset();
+      document.getElementById('form-signup').reset();
+      document.querySelectorAll('.alert').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+
+      document.getElementById('table-body').innerHTML = "<tr><td colspan='5' style='text-align:center;padding:20px;'>กำลังดึงข้อมูล...</td></tr>";
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      switchAuthView('dashboard');
+
+      document.getElementById('dash-username').textContent = currentUser.username;
+      const roleChip = document.getElementById('dash-role-chip');
+      roleChip.textContent = currentUser.role.toUpperCase();
+      roleChip.className = `role-chip ${currentUser.role}`;
+
+      const permBox = document.getElementById('permission-msg');
+      if (currentUser.role === 'admin') {
+        permBox.className = "permission-box p-admin";
+        permBox.innerHTML = "<strong>🔔 สิทธิ์ผู้ฝึกสอน (Admin):</strong> คุณสามารถดูสถิติรวม หรือเลือกเจาะจงดูพัฒนาการของนักเรียนเป็นรายบุคคลได้";
+      } else {
+        permBox.className = "permission-box p-visitor";
+        permBox.innerHTML = "<strong>🔒 สิทธิ์นักเรียน (Student):</strong> ระบบรักษาความปลอดภัยข้อมูล คุณจะเห็นเฉพาะสถิติและพัฒนาการของตัวคุณเองเท่านั้น";
+        document.getElementById('admin-filter-container').style.display = 'none';
+      }
+
+      try {
+        // ดึง training_sessions จาก Supabase โดยตรง
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+        let params = `created_at=gte.${ninetyDaysAgo}&order=created_at.desc&select=*`;
+        if (currentUser.role !== 'admin') {
+          params += `&username=eq.${encodeURIComponent(currentUser.username)}`;
+        }
+        const data = await sbGet("training_sessions", params);
+        const result = { status: "success", data: data || [] };
+
+        if (result.status === 'success' && result.data) {
+          _allSessionData = result.data; // เก็บ Data ดิบไว้
+
+          // ถ้าเป็น Admin ให้ดึงชื่อเด็กมาสร้าง Dropdown
+          if (currentUser.role === 'admin') {
+            document.getElementById('admin-filter-container').style.display = 'flex';
+            const selectBox = document.getElementById('admin-student-select');
+
+            // หาชื่อเด็กที่ไม่ซ้ำกัน
+            const uniqueUsers = [...new Set(_allSessionData.map(d => d.username))].filter(u => u);
+            selectBox.innerHTML = '<option value="all">👥 นักเรียนทั้งหมดรวมกัน</option>' +
+              uniqueUsers.map(u => `<option value="${u}">👤 ${u}</option>`).join('');
+          }
+
+          // แสดงผลครั้งแรก (ดึงข้อมูลทั้งหมดมาโชว์)
+          renderDashboard(_allSessionData, 'all');
+        } else {
+          renderDashboard([], 'all');
+        }
+      } catch (e) {
+        document.getElementById('table-body').innerHTML = "<tr><td colspan='5' style='text-align:center;padding:20px;color:var(--red)'>❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้</td></tr>";
+      }
+    }
+
+    // ฟังก์ชันนี้จะถูกเรียกเมื่อ Admin เลือก Dropdown เปลี่ยนชื่อเด็ก
+    function filterByStudent() {
+      const selectedUser = document.getElementById('admin-student-select').value;
+      let filteredData = _allSessionData;
+
+      if (selectedUser !== 'all') {
+        filteredData = _allSessionData.filter(d => d.username === selectedUser);
+      }
+
+      renderDashboard(filteredData, selectedUser);
+    }
+
+    // ฟังก์ชันหลักที่ใช้วาดหน้าจอ (ใช้ร่วมกันทั้งตอนโหลดครั้งแรก และตอน Admin กด Filter)
+    function renderDashboard(dataToRender, selectedUser) {
+      _sessionData = dataToRender; // อัปเดตตัวแปรสำหรับ Toggle รายลูก
+
+      const tTitle = document.getElementById('table-title');
+      const dTitle = document.getElementById('daily-title');
+      const tHeader = document.getElementById('table-header');
+      const tBody = document.getElementById('table-body');
+
+      // 1. กำหนดข้อความ Header
+      if (currentUser.role === 'admin') {
+        if (selectedUser === 'all') {
+          dTitle.innerHTML = "📅 สรุปผลวันนี้ (รวมทุกคน)";
+          tTitle.innerHTML = "📊 รายการบันทึกสถิติ (นักเรียนทั้งหมด)";
+          tHeader.innerHTML = `<th>รอบที่</th><th>ชื่อนักเรียน</th><th>วันเวลาฝึกซ้อม</th><th>จำนวนลูกที่โยน</th><th>ความแม่นยำจุดตก (%)</th>`;
+        } else {
+          dTitle.innerHTML = `📅 สรุปผลวันนี้ของ: <span style="color:var(--primary)">${selectedUser}</span>`;
+          tTitle.innerHTML = `📊 ประวัติการฝึกซ้อมของ: <span style="color:var(--primary)">${selectedUser}</span>`;
+          tHeader.innerHTML = `<th>รอบที่</th><th>วันเวลาฝึกซ้อม</th><th>จำนวนลูกที่โยน</th><th>ความแม่นยำจุดตก (%)</th>`;
+        }
+      } else {
+        dTitle.innerHTML = "📅 สรุปผลการซ้อมของคุณวันนี้";
+        tTitle.innerHTML = "📊 ตารางแสดงประวัติพัฒนาการของคุณ";
+        tHeader.innerHTML = `<th>รอบที่</th><th>วันเวลาฝึกซ้อม</th><th>จำนวนลูกที่โยน</th><th>ความแม่นยำจุดตก (%)</th>`;
+      }
+
+      // 2. อัปเดต Daily Progress & KPIs
+      updateDailyProgress(dataToRender);
+
+      const calculatedSessions = dataToRender.length;
+      const calculatedBalls = dataToRender.reduce((sum, item) => sum + parseInt(item.total_balls || 0), 0);
+      const calculatedAvgAcc = calculatedSessions > 0 ? (dataToRender.reduce((sum, item) => sum + parseFloat(item.accuracy_percent || 0), 0) / calculatedSessions).toFixed(1) : "0.0";
+
+      document.getElementById('kpi-sessions').innerHTML = `${calculatedSessions} <span>รอบ</span>`;
+      document.getElementById('kpi-accuracy').innerHTML = `${calculatedAvgAcc} <span>%</span>`;
+      document.getElementById('kpi-balls').innerHTML = `${calculatedBalls} <span>ลูก</span>`;
+
+      // 3. วาดตาราง Table Rows
+      if (dataToRender.length > 0) {
+        tBody.innerHTML = dataToRender.map((item, idx) => {
+          const sessionNum = dataToRender.length - idx;
+
+          // คอลัมน์ชื่อจะโชว์ก็ต่อเมื่อเป็น Admin และเลือกดู "ทุกคน"
+          const showNameCol = (currentUser.role === 'admin' && selectedUser === 'all');
+          const nameColumnHtml = showNameCol ? `<td style='color:#fff;font-weight:600'>${item.username || 'ไม่ระบุชื่อ'}</td>` : '';
+          const colspanCount = showNameCol ? 5 : 4;
+
+          const accVal = parseFloat(item.accuracy_percent || 0);
+          let dateVal = 'ไม่ระบุเวลา';
+          if (item.created_at) dateVal = new Date(item.created_at).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }).substring(0, 17);
+
+          return `
+            <tr style="cursor:pointer" onclick="toggleThrows('throws-${idx}', this)">
+              <td style='font-family:var(--mono);font-weight:bold'>
+                Session #${sessionNum}
+                <span style='color:#888;font-size:0.75rem;margin-left:6px'>▶ คลิกดูรายลูก</span>
+              </td>
+              ${nameColumnHtml}
+              <td style='font-family:var(--mono);font-size:0.85rem'>${dateVal}</td>
+              <td>${item.total_balls || 0} ลูก · ${item.total_score || 0} แต้ม</td>
+              <td><span class='acc-badge ${getAccClass(accVal)}'>${accVal.toFixed(1)}%</span></td>
+            </tr>
+            <tr id="throws-${idx}" style="display:none">
+              <td colspan="${colspanCount}" style="padding:0">
+                <div style="background:rgba(255,255,255,0.03);padding:12px 24px" id="throws-content-${idx}">
+                  <span style="color:#888;font-size:0.85rem">⏳ กำลังโหลดข้อมูลลูกเปตอง...</span>
+                </div>
+              </td>
+            </tr>`;
+        }).join('');
+      } else {
+        tBody.innerHTML = `<tr><td colspan='5' style='text-align:center;padding:20px;color:var(--text-dim)'>ยังไม่มีประวัติการฝึกซ้อมในระบบ</td></tr>`;
+      }
+    }
+
+    function updateDailyProgress(data) {
+      const todayStr = new Date().toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' });
+      const todayData = data.filter(item => {
+        if (!item.created_at) return false;
+        return new Date(item.created_at).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' }) === todayStr;
+      });
+
+      const dateLabel = new Date().toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('daily-date-label').textContent = dateLabel;
+
+      if (todayData.length === 0) {
+        document.getElementById('d-sessions').innerHTML = `0<span class="d-unit">รอบ</span>`;
+        document.getElementById('d-balls').innerHTML = `0<span class="d-unit">ลูก</span>`;
+        document.getElementById('d-score').innerHTML = `0<span class="d-unit">แต้ม</span>`;
+        document.getElementById('d-acc').innerHTML = `0.0<span class="d-unit">%</span>`;
+        document.getElementById('d-best').textContent = '— ยังไม่มีข้อมูลของวันนี้';
+        document.getElementById('d-progress-bar').style.width = '0%';
+        return;
+      }
+
+      const dSessions = todayData.length;
+      const dBalls = todayData.reduce((s, i) => s + parseInt(i.total_balls || 0), 0);
+      const dScore = todayData.reduce((s, i) => s + parseInt(i.total_score || 0), 0);
+      const dAcc = (todayData.reduce((s, i) => s + parseFloat(i.accuracy_percent || 0), 0) / dSessions).toFixed(1);
+
+      const best = todayData.reduce((a, b) => parseFloat(a.accuracy_percent) >= parseFloat(b.accuracy_percent) ? a : b);
+      const bestAcc = parseFloat(best.accuracy_percent).toFixed(1);
+      const bestTime = best.created_at ? new Date(best.created_at).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' }) : '—';
+
+      document.getElementById('d-sessions').innerHTML = `${dSessions}<span class="d-unit">รอบ</span>`;
+      document.getElementById('d-balls').innerHTML = `${dBalls}<span class="d-unit">ลูก</span>`;
+      document.getElementById('d-score').innerHTML = `${dScore}<span class="d-unit">แต้ม</span>`;
+      document.getElementById('d-acc').innerHTML = `${dAcc}<span class="d-unit">%</span>`;
+      document.getElementById('d-best').textContent = `${bestAcc}% (ทำได้ตอน ${bestTime})`;
+      document.getElementById('d-progress-bar').style.width = `${Math.min(dAcc, 100)}%`;
+    }
+
+    function getAccClass(acc) {
+      if (acc >= 80) return 'acc-high';
+      if (acc >= 50) return 'acc-mid';
+      return 'acc-low';
+    }
+
+    async function toggleThrows(rowId, clickedTr) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+      const isHidden = row.style.display === 'none';
+      row.style.display = isHidden ? '' : 'none';
+      const arrow = clickedTr.querySelector('span[style*="color:#888"]');
+      if (arrow) arrow.textContent = isHidden ? '▼ ซ่อน' : '▶ คลิกดูรายลูก';
+
+      if (!isHidden) return;
+
+      const idx = rowId.replace('throws-', '');
+      const contentDiv = document.getElementById(`throws-content-${idx}`);
+      if (!contentDiv || contentDiv.dataset.loaded) return;
+
+      const item = _sessionData[idx];
+      if (!item || !item.session_id) {
+        contentDiv.innerHTML = '<span style="color:#888;font-size:0.85rem">ไม่มีข้อมูลรายลูก</span>';
+        return;
+      }
+
+      try {
+        const throws = await sbGet("accuracy", `session_id=eq.${encodeURIComponent(item.session_id)}&order=created_at.asc&select=*`);
+        const result = { status: "success", data: throws || [] };
+
+        if (result.status === 'success' && result.data.length > 0) {
+          contentDiv.innerHTML = `
+            <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
+              <thead><tr style="color:#888">
+                <th style="text-align:left;padding:4px 8px">ลูกที่</th>
+                <th style="text-align:left;padding:4px 8px">เวลา</th>
+                <th style="text-align:right;padding:4px 8px">ระยะ (ซม.)</th>
+                <th style="text-align:right;padding:4px 8px">ความแม่น</th>
+                <th style="text-align:right;padding:4px 8px">แต้ม</th>
+              </tr></thead>
+              <tbody>
+                ${result.data.map((t, i) => {
+            const acc = parseFloat(t.accuracy_percent || 0);
+            const timeStr = t.created_at ? new Date(t.created_at).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok' }) : '-';
+            return `<tr style="border-top:1px solid rgba(255,255,255,0.05)">
+                    <td style="padding:4px 8px;color:#888">↳ ${i + 1}</td>
+                    <td style="padding:4px 8px;font-family:var(--mono);font-size:0.8rem">${timeStr}</td>
+                    <td style="padding:4px 8px;text-align:right;font-family:var(--mono)">${t.distance_cm} ซม.</td>
+                    <td style="padding:4px 8px;text-align:right"><span class="acc-badge ${getAccClass(acc)}">${acc.toFixed(1)}%</span></td>
+                    <td style="padding:4px 8px;text-align:right;font-weight:bold">${t.points} แต้ม</td>
+                  </tr>`;
+          }).join('')}
+              </tbody>
+            </table>`;
+          contentDiv.dataset.loaded = '1';
+        } else {
+          contentDiv.innerHTML = '<span style="color:#888;font-size:0.85rem">ไม่มีข้อมูลรายลูกในระบบ</span>';
+        }
+      } catch (e) {
+        contentDiv.innerHTML = '<span style="color:red;font-size:0.85rem">❌ โหลดไม่สำเร็จ</span>';
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('currentUser');
+      document.getElementById('form-signin').reset();
+      document.getElementById('form-signup').reset();
+      document.getElementById('form-role').reset();
+      document.getElementById('admin-code-group').style.display = 'none';
+      selectRole('visitor');
+      switchAuthView('signin');
+    }
+  </script>
+</body>
+
+</html>
